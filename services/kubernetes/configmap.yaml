@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: primestack-runtime
+  namespace: primestack
+data:
+  NODE_ENV: production
+  PGHOST: postgres.example.internal
+  PGPORT: "5432"
+  PGSSLMODE: require
+  PG_POOL_MAX: "20"
+  REDIS_DB: "0"
+  LEDGER_SERVICE_URL: http://ledger-service:4001
+  IP_WHITELIST_SERVICE_URL: http://ip-whitelist-service:4002
+  AUTH_SERVICE_URL: http://auth-service:4003
+  TERMINAL_SERVICE_URL: http://terminal-service:4004
+  TRANSFER_SERVICE_URL: http://transfer-service:4005
+  RISK_SERVICE_URL: http://risk-service:4006
+  AUDIT_SERVICE_URL: http://audit-service:4007
+  SETTLEMENT_SERVICE_URL: http://settlement-service:4008
+  NOTIFICATION_SERVICE_URL: http://notification-service:4009
+  SWITCH_CORE_URL: http://switch-core:4010
+  SECURITY_SERVICE_URL: http://security-service:4011
+  ROUTING_SERVICE_URL: http://routing-service:4012
+  ISO8583_GATEWAY_URL: http://iso8583-gateway:4013
+  HEALTH_CHECK_INTERVAL: "30000"
+  SKIP_CONNECTIONS: "false"

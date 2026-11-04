@@ -1,0 +1,21 @@
+﻿{
+  "name": "ip-whitelist-service",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "PrimeStack — ip-whitelist-service",
+  "main": "dist/server.js",
+  "scripts": {
+    "build":  "tsc",
+    "start":  "node dist/server.js",
+    "dev":    "tsx watch src/server.ts"
+  },
+  "dependencies": {
+    "pg": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/pg":   "^8.11.6",
+    "tsx":         "^4.15.7",
+    "typescript":  "^5.4.5"
+  }
+}

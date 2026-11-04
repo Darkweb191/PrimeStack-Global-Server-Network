@@ -1,0 +1,22 @@
+{
+  "name": "iso8583-gateway",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "PrimeStack — ISO 8583 Network Gateway: parser, host connections, message tracking",
+  "main": "dist/iso8583-gateway/src/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/iso8583-gateway/src/server.js",
+    "dev":   "tsx watch src/server.ts",
+    "test":  "tsx tests/parser.test.ts"
+  },
+  "dependencies": {
+    "pg": "^8.12.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/pg":   "^8.11.6",
+    "tsx":         "^4.15.7",
+    "typescript":  "^5.4.5"
+  }
+}

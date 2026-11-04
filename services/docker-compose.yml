@@ -1,0 +1,423 @@
+# ============================================================
+# PrimeStack Switch â€” Services Infrastructure
+#
+# Services are isolated per their domain:
+#   - Each service has its OWN database schema
+#   - Services talk to each other via HTTP (or gRPC in production)
+#   - RabbitMQ handles async events between services
+#   - Redis is shared for caching and rate limiting
+# ============================================================
+
+services:
+
+  # â”€â”€ Infrastructure â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: primestack-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER:     primestack
+      POSTGRES_PASSWORD: primestack
+      POSTGRES_DB:       primestack
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Run all migration scripts on first start
+      - ./init-db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U primestack"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: primestack-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server
+      --requirepass changeme
+      --appendonly yes
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "changeme", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: primestack-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"    # AMQP
+      - "15672:15672"  # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: primestack
+      RABBITMQ_DEFAULT_PASS: primestack
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  # â”€â”€ Services â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  ledger-service:
+    build:
+      context: ./ledger-service
+      dockerfile: Dockerfile
+    container_name: primestack-ledger
+    restart: unless-stopped
+    ports:
+      - "4001:4001"
+    environment:
+      PORT:        4001
+      PGHOST:      postgres
+      PGPORT:      5432
+      PGDATABASE:  primestack_ledger
+      PGUSER:      ledger_svc
+      PGPASSWORD:  ledger_secret
+      PGSSLMODE:   disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4001/health > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ip-whitelist-service:
+    build:
+      context: .
+      dockerfile: ip-whitelist-service/Dockerfile
+    container_name: primestack-ip-whitelist
+    restart: unless-stopped
+    ports:
+      - "4002:4002"
+    environment:
+      PORT:        4002
+      PGHOST:      postgres
+      PGPORT:      5432
+      PGDATABASE:  primestack_ipwl
+      PGUSER:      ipwl_svc
+      PGPASSWORD:  ipwl_secret
+      PGSSLMODE:   disable
+      REDIS_URL:   redis://:changeme@redis:6379/1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+    container_name: primestack-auth
+    restart: unless-stopped
+    ports:
+      - "4003:4003"
+    environment:
+      PORT:        4003
+      PGHOST:      postgres
+      PGDATABASE:  primestack_auth
+      PGUSER:      auth_svc
+      PGPASSWORD:  auth_secret
+      PGSSLMODE:   disable
+      JWT_SECRET:  change-me-in-production
+      REDIS_URL:   redis://:changeme@redis:6379/2
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  terminal-service:
+    build:
+      context: .
+      dockerfile: terminal-service/Dockerfile
+    container_name: primestack-terminal
+    restart: unless-stopped
+    ports:
+      - "4004:4004"
+    environment:
+      PORT:        4004
+      PGHOST:      postgres
+      PGDATABASE:  primestack_terminal
+      PGUSER:      terminal_svc
+      PGPASSWORD:  terminal_secret
+      PGSSLMODE:   disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  transfer-service:
+    build:
+      context: .
+      dockerfile: transfer-service/Dockerfile
+    container_name: primestack-transfer
+    restart: unless-stopped
+    ports:
+      - "4005:4005"
+    environment:
+      PORT:              4005
+      PGHOST:            postgres
+      PGDATABASE:        primestack_transfer
+      PGUSER:            transfer_svc
+      PGPASSWORD:        transfer_secret
+      PGSSLMODE:         disable
+      LEDGER_SERVICE_URL: http://ledger-service:4001
+      RISK_SERVICE_URL:   http://risk-service:4006
+      RABBITMQ_URL:       amqp://primestack:primestack@rabbitmq:5672
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ledger-service:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  risk-service:
+    build:
+      context: .
+      dockerfile: risk-service/Dockerfile
+    container_name: primestack-risk
+    restart: unless-stopped
+    ports:
+      - "4006:4006"
+    environment:
+      PORT:        4006
+      PGHOST:      postgres
+      PGDATABASE:  primestack_risk
+      PGUSER:      risk_svc
+      PGPASSWORD:  risk_secret
+      PGSSLMODE:   disable
+      REDIS_URL:   redis://:changeme@redis:6379/3
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  audit-service:
+    build:
+      context: .
+      dockerfile: audit-service/Dockerfile
+    container_name: primestack-audit
+    restart: unless-stopped
+    ports:
+      - "4007:4007"
+    environment:
+      PORT:        4007
+      PGHOST:      postgres
+      PGDATABASE:  primestack_audit
+      PGUSER:      audit_svc
+      PGPASSWORD:  audit_secret
+      PGSSLMODE:   disable
+      RABBITMQ_URL: amqp://primestack:primestack@rabbitmq:5672
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api-gateway:
+    build:
+      context: ./api-gateway-service
+      dockerfile: Dockerfile
+    container_name: primestack-gateway
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      PORT:                     8080
+      NODE_ENV:                 production
+      LEDGER_SERVICE_URL:       http://ledger-service:4001
+      IP_WHITELIST_SERVICE_URL: http://ip-whitelist-service:4002
+      AUTH_SERVICE_URL:         http://auth-service:4003
+      TERMINAL_SERVICE_URL:     http://terminal-service:4004
+      TRANSFER_SERVICE_URL:     http://transfer-service:4005
+      RISK_SERVICE_URL:         http://risk-service:4006
+      AUDIT_SERVICE_URL:        http://audit-service:4007
+      SETTLEMENT_SERVICE_URL:   http://settlement-service:4008
+      NOTIFICATION_SERVICE_URL: http://notification-service:4009
+      SWITCH_CORE_URL:          http://switch-core:4010
+      SECURITY_SERVICE_URL:     http://security-service:4011
+      ROUTING_SERVICE_URL:      http://routing-service:4012
+      ISO8583_GATEWAY_URL:      http://iso8583-gateway:4013
+    depends_on:
+      - security-service
+      - ip-whitelist-service
+      - ledger-service
+      - switch-core
+
+  settlement-service:
+    build:
+      context: .
+      dockerfile: settlement-service/Dockerfile
+    container_name: primestack-settlement
+    restart: unless-stopped
+    ports:
+      - "4008:4008"
+    environment:
+      PORT:               4008
+      PGHOST:             postgres
+      PGDATABASE:         primestack_settlement
+      PGUSER:             settlement_svc
+      PGPASSWORD:         settlement_secret
+      PGSSLMODE:          disable
+      LEDGER_SERVICE_URL: http://ledger-service:4001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ledger-service:
+        condition: service_healthy
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+    container_name: primestack-notification
+    restart: unless-stopped
+    ports:
+      - "4009:4009"
+    environment:
+      PORT:        4009
+      PGHOST:      postgres
+      PGDATABASE:  primestack_notification
+      PGUSER:      notification_svc
+      PGPASSWORD:  notification_secret
+      PGSSLMODE:   disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  switch-core:
+    build:
+      context: .
+      dockerfile: switch-core/Dockerfile
+    container_name: primestack-switch-core
+    restart: unless-stopped
+    ports:
+      - "4010:4010"
+    environment:
+      PORT:                     4010
+      PGHOST:                   postgres
+      PGDATABASE:               primestack_switch
+      PGUSER:                   switch_svc
+      PGPASSWORD:               switch_secret
+      PGSSLMODE:                disable
+      PG_POOL_MAX:              "40"
+      LEDGER_SERVICE_URL:       http://ledger-service:4001
+      RISK_SERVICE_URL:         http://risk-service:4006
+      TERMINAL_SERVICE_URL:     http://terminal-service:4004
+      ROUTING_SERVICE_URL:      http://routing-service:4012
+      NOTIFICATION_SERVICE_URL: http://notification-service:4009
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ledger-service:
+        condition: service_healthy
+      risk-service:
+        condition: service_healthy
+
+  security-service:
+    build:
+      context: .
+      dockerfile: security-service/Dockerfile
+    container_name: primestack-security
+    restart: unless-stopped
+    ports:
+      - "4011:4011"
+    environment:
+      PORT:                   4011
+      PGHOST:                 postgres
+      PGDATABASE:             primestack_security
+      PGUSER:                 security_svc
+      PGPASSWORD:             security_secret
+      PGSSLMODE:              disable
+      SECRET_ENCRYPTION_KEY:  "0000000000000000000000000000000000000000000000000000000000000000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  routing-service:
+    build:
+      context: .
+      dockerfile: routing-service/Dockerfile
+    container_name: primestack-routing
+    restart: unless-stopped
+    ports:
+      - "4012:4012"
+    environment:
+      PORT:                   4012
+      PGHOST:                 postgres
+      PGDATABASE:             primestack_routing
+      PGUSER:                 routing_svc
+      PGPASSWORD:             routing_secret
+      PGSSLMODE:              disable
+      HEALTH_CHECK_INTERVAL:  "30000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+  iso8583-gateway:
+    build:
+      context: .
+      dockerfile: iso8583-gateway/Dockerfile
+    container_name: primestack-iso8583
+    restart: unless-stopped
+    ports:
+      - "4013:4013"
+    environment:
+      PORT:                4013
+      PGHOST:              postgres
+      PGDATABASE:          primestack_iso8583
+      PGUSER:              iso8583_svc
+      PGPASSWORD:          iso8583_secret
+      PGSSLMODE:           disable
+      SKIP_CONNECTIONS:    "true"
+      SWITCH_CORE_URL:     http://switch-core:4010
+      RISK_SERVICE_URL:    http://risk-service:4006
+      ROUTING_SERVICE_URL: http://routing-service:4012
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── Crypto payout (real on-chain TRC-20 broadcaster) ────────
+  # Fail-closed: with no TRON_* credentials set below, /withdraw
+  # returns 501 NOT_CONFIGURED and never simulates a broadcast.
+  crypto-payout-service:
+    build:
+      context: ./crypto-payout-service
+      dockerfile: Dockerfile
+    container_name: primestack-crypto-payout
+    restart: unless-stopped
+    ports:
+      - "4014:4014"
+    environment:
+      PORT:                        4014
+      LEDGER_SERVICE_URL:          http://ledger-service:4001
+      TRON_FULL_HOST:              ${TRON_FULL_HOST:-}
+      TRON_API_KEY:                ${TRON_API_KEY:-}
+      TRON_HOT_WALLET_PRIVATE_KEY: ${TRON_HOT_WALLET_PRIVATE_KEY:-}
+      TRON_USDT_CONTRACT:          ${TRON_USDT_CONTRACT:-}
+    depends_on:
+      ledger-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4014/health > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+  redisdata:
+  rabbitmqdata:

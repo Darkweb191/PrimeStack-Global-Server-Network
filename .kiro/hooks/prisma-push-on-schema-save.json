@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Prisma DB Push on Schema Save",
+      "trigger": "PostFileSave",
+      "description": "Auto-regenerate Prisma client whenever schema.prisma is saved",
+      "matcher": "prisma/schema\\.prisma$",
+      "action": {
+        "type": "command",
+        "command": "cd \"d:\\PrimeStack Asset Gateway\" && npx prisma generate 2>&1",
+        "timeout": 60
+      }
+    }
+  ]
+}

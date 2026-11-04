@@ -1,0 +1,53 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: primestack
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - workloads.yaml
+  - services.yaml
+  - ingress.yaml
+  - availability.yaml
+images:
+  - name: primestack/ledger-service
+    newName: registry.example.invalid/primestack/ledger-service
+    newTag: REPLACE_WITH_IMMUTABLE_TAG
+  - name: primestack/ip-whitelist-service
+    newName: registry.example.invalid/primestack/ip-whitelist-service
+    newTag: REPLACE_WITH_IMMUTABLE_TAG
+  - name: primestack/auth-service
+    newName: registry.example.invalid/primestack/auth-service
+    newTag: REPLACE_WITH_IMMUTABLE_TAG
+  - name: primestack/terminal-service
+    newName: registry.example.invalid/primestack/terminal-service
+    newTag: REPLACE_WITH_IMMUTABLE_TAG
+  - name: primestack/transfer-service
+    newName: registry.example.invalid/primestack/transfer-service
+    newTag: REPLACE_WITH_IMMUTABLE_TAG
+  - name: primestack/risk-service
+    newName: registry.example.invalid/primestack/risk-service
+    newTag: REPLACE_WITH_IMMUTABLE_TAG
+  - name: primestack/audit-service
+    newName: registry.example.invalid/primestack/audit-service
+    newTag: REPLACE_WITH_IMMUTABLE_TAG
+  - name: primestack/api-gateway
+    newName: registry.example.invalid/primestack/api-gateway
+    newTag: REPLACE_WITH_IMMUTABLE_TAG
+  - name: primestack/settlement-service
+    newName: registry.example.invalid/primestack/settlement-service
+    newTag: REPLACE_WITH_IMMUTABLE_TAG
+  - name: primestack/notification-service
+    newName: registry.example.invalid/primestack/notification-service
+    newTag: REPLACE_WITH_IMMUTABLE_TAG
+  - name: primestack/switch-core
+    newName: registry.example.invalid/primestack/switch-core
+    newTag: REPLACE_WITH_IMMUTABLE_TAG
+  - name: primestack/security-service
+    newName: registry.example.invalid/primestack/security-service
+    newTag: REPLACE_WITH_IMMUTABLE_TAG
+  - name: primestack/routing-service
+    newName: registry.example.invalid/primestack/routing-service
+    newTag: REPLACE_WITH_IMMUTABLE_TAG
+  - name: primestack/iso8583-gateway
+    newName: registry.example.invalid/primestack/iso8583-gateway
+    newTag: REPLACE_WITH_IMMUTABLE_TAG

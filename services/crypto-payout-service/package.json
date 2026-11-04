@@ -1,0 +1,20 @@
+{
+  "name": "crypto-payout-service",
+  "version": "1.0.0",
+  "description": "PrimeStack — Crypto Payout Service: signs and broadcasts on-chain TRC-20 transfers, then posts the matching ledger entry (fail-closed)",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsx watch src/server.ts"
+  },
+  "dependencies": {
+    "tronweb": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.15.7",
+    "typescript": "^5.4.5"
+  }
+}

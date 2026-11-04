@@ -1,0 +1,21 @@
+﻿{
+  "name": "api-gateway-service",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "PrimeStack — api-gateway-service",
+  "main": "dist/gateway.js",
+  "scripts": {
+    "build":  "tsc",
+    "start":  "node dist/gateway.js",
+    "dev":    "tsx watch src/server.ts"
+  },
+  "dependencies": {
+    
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/pg":   "^8.11.6",
+    "tsx":         "^4.15.7",
+    "typescript":  "^5.4.5"
+  }
+}

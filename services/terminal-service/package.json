@@ -1,0 +1,22 @@
+﻿{
+  "name": "terminal-service",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "PrimeStack — Terminal Management Platform (TMS): registry, health, groups, key lifecycle, firmware, analytics",
+  "main": "dist/terminal-service/src/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/terminal-service/src/server.js",
+    "dev":   "tsx watch src/server.ts",
+    "test":  "tsx tests/tms.test.ts"
+  },
+  "dependencies": {
+    "pg": "^8.12.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/pg":   "^8.11.6",
+    "tsx":         "^4.15.7",
+    "typescript":  "^5.4.5"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "ledger-service",
+  "version": "1.0.0",
+  "description": "PrimeStack — Ledger Service: double-entry accounting core",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "build":   "tsc",
+    "start":   "node dist/server.js",
+    "dev":     "tsx watch src/server.ts",
+    "migrate": "node -e \"require('child_process').execSync('psql $DATABASE_URL -f migrations/001_initial.sql', {stdio:'inherit'})\"",
+    "test":    "tsx tests/ledger.test.ts"
+  },
+  "dependencies": {
+    "decimal.js": "^10.4.3",
+    "pg":          "^8.12.0"
+  },
+  "devDependencies": {
+    "@types/node":  "^20.14.0",
+    "@types/pg":    "^8.11.6",
+    "tsx":          "^4.15.7",
+    "typescript":   "^5.4.5"
+  }
+}

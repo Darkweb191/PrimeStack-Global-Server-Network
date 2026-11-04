@@ -1,0 +1,24 @@
+﻿{
+  "name": "risk-service",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "PrimeStack — Risk Engine: blacklist, velocity, scoring, AML, manual review",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev":   "tsx watch src/server.ts",
+    "test":  "tsx tests/risk-engine.test.ts"
+  },
+  "dependencies": {
+    "decimal.js": "^10.4.3",
+    "pg":         "^8.12.0",
+    "redis":      "^4.6.13"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/pg":   "^8.11.6",
+    "tsx":         "^4.15.7",
+    "typescript":  "^5.4.5"
+  }
+}

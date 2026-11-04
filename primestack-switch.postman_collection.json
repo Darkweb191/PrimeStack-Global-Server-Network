@@ -1,0 +1,854 @@
+{
+  "info": {
+    "_postman_id": "primestack-switch-v1",
+    "name": "PrimeStack Switch API",
+    "description": "Complete API collection for the PrimeStack Switch platform. Set base_url, hmac_key_id, hmac_secret, and jwt_token variables to get started.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8081", "type": "string" },
+    { "key": "hmac_key_id", "value": "psk_demo_key_001", "type": "string" },
+    { "key": "hmac_secret", "value": "YOUR_HMAC_SECRET_FROM_SEED", "type": "string" },
+    { "key": "jwt_token", "value": "", "type": "string" },
+    { "key": "merchant_id", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/health"
+          }
+        },
+        {
+          "name": "API Info",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api-gateway/info"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.token) {",
+                  "  pm.collectionVariables.set('jwt_token', res.data.token);",
+                  "  console.log('JWT token set');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/admin/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@primestack.io\",\n  \"password\": \"Admin@2026\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/admin/users",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }]
+          }
+        },
+        {
+          "name": "KYC Pending",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/admin/kyc/pending",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Merchants",
+      "item": [
+        {
+          "name": "Create Merchant",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/merchants",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"MERCHANT-TEST\",\n  \"legalName\": \"Test Merchant Ltd\",\n  \"email\": \"test@merchant.com\",\n  \"country\": \"US\",\n  \"preferredLang\": \"en\",\n  \"mcc\": \"5411\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Merchants",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/merchants"
+          }
+        },
+        {
+          "name": "Merchant Stats",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/merchants/{{merchant_id}}/stats"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ledger",
+      "item": [
+        {
+          "name": "Create Account",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/ledger/accounts",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"TEST-ASSET-001\",\n  \"name\": \"Test Asset Account\",\n  \"type\": \"ASSET\",\n  \"currency\": \"USD\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Balance",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/ledger/accounts/TEST-ASSET-001/balance"
+          }
+        },
+        {
+          "name": "Post Journal Entry",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/ledger/entries",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reference\": \"JE-TEST-001\",\n  \"entryType\": \"TRANSFER\",\n  \"description\": \"Test transfer entry\",\n  \"source\": \"TEST\",\n  \"lines\": [\n    { \"accountCode\": \"SYSTEM-FUNDING-USD\", \"debit\": \"100\", \"credit\": \"0\" },\n    { \"accountCode\": \"TEST-ASSET-001\", \"debit\": \"0\", \"credit\": \"100\" }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "List Entries",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/ledger/entries?page=1&pageSize=20"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wallets",
+      "item": [
+        {
+          "name": "Create Wallet",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/wallets",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"walletAddress\": \"WALLET-TEST-001\",\n  \"type\": \"USER\",\n  \"currency\": \"USD\",\n  \"label\": \"Test User Wallet\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Balance",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/wallets/WALLET-TEST-001/balance"
+          }
+        },
+        {
+          "name": "Fund Wallet",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/wallets/WALLET-TEST-001/fund",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": \"500.00\",\n  \"description\": \"Initial funding\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transfers",
+      "item": [
+        {
+          "name": "Wallet Transfer",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/transfers",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"WALLET\",\n  \"amount\": \"50.00\",\n  \"currency\": \"USD\",\n  \"feeAmount\": \"0.50\",\n  \"sourceType\": \"WALLET\",\n  \"sourceId\": \"WALLET-TEST-001\",\n  \"destType\": \"WALLET\",\n  \"destId\": \"WALLET-TEST-002\",\n  \"description\": \"Test wallet transfer\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Transfers",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/transfers?page=1&pageSize=20"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Terminals",
+      "item": [
+        {
+          "name": "Register Terminal",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/terminals",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tid\": \"TID00001\",\n  \"serialNumber\": \"SN-TEST-001\",\n  \"merchantId\": \"{{merchant_id}}\",\n  \"model\": \"Verifone V400m\",\n  \"country\": \"US\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Terminals",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/terminals?page=1&pageSize=20"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ISO 8583",
+      "item": [
+        {
+          "name": "Parse Message",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/iso8583/parse",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"30313030\",\n  \"encoding\": \"ascii\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Host Connections",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/iso8583/hosts"
+          }
+        },
+        {
+          "name": "List Message Traces",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/iso8583/traces?page=1&pageSize=20"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fraud",
+      "item": [
+        {
+          "name": "Evaluate Transaction",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/fraud/evaluate",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": \"250.00\",\n  \"currency\": \"USD\",\n  \"cardNumber\": \"411111111111\",\n  \"ipAddress\": \"192.168.1.1\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Evaluate — AML Threshold",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/fraud/evaluate",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": \"15000.00\",\n  \"currency\": \"USD\",\n  \"walletAddress\": \"WALLET-BIG-001\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Add to Blacklist",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/fraud/blacklist",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"CARD\",\n  \"value\": \"411111111111\",\n  \"reason\": \"Known fraud card\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Fraud Rules",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/fraud/rules"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Monitoring",
+      "item": [
+        {
+          "name": "Dashboard",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/monitoring/dashboard"
+          }
+        },
+        {
+          "name": "Live Transactions",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/monitoring/transactions/live?limit=20"
+          }
+        },
+        {
+          "name": "Host Status",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/monitoring/hosts/status"
+          }
+        },
+        {
+          "name": "Terminal Status",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/monitoring/terminals/status"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Network",
+      "item": [
+        {
+          "name": "List IP Whitelist",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/network/ip-whitelist"
+          }
+        },
+        {
+          "name": "Add IP",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/network/ip-whitelist",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ipAddress\": \"10.0.0.0/8\",\n  \"label\": \"Internal network\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Create HMAC Key",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/network/hmac-keys",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchantId\": \"{{merchant_id}}\",\n  \"label\": \"Primary API key\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Create API Key",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/network/api-keys",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchantId\": \"{{merchant_id}}\",\n  \"label\": \"Transfers API key\",\n  \"scopes\": [\"transfers:read\", \"transfers:write\"]\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Settlement",
+      "item": [
+        {
+          "name": "Create Settlement Batch",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/settlement/batches",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchantId\": \"{{merchant_id}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Batches",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/settlement/batches?page=1&pageSize=20"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Treasury",
+      "item": [
+        {
+          "name": "Create Float Account",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/treasury/float",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"USD Operations Float\",\n  \"currency\": \"USD\",\n  \"minBalance\": \"100000\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Check Low Balances",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/treasury/float/check/low-balance"
+          }
+        },
+        {
+          "name": "List Reserves",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/treasury/reserves"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "Register Webhook",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api-gateway/webhooks",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchantId\": \"{{merchant_id}}\",\n  \"url\": \"https://webhook.site/your-unique-id\",\n  \"events\": [\"transfer.completed\", \"transfer.failed\", \"terminal.offline\"],\n  \"label\": \"Primary webhook\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Dispatch Event",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api-gateway/webhooks/dispatch",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"transfer.completed\",\n  \"payload\": {\n    \"reference\": \"TRF-TEST-001\",\n    \"amount\": \"50.00\",\n    \"currency\": \"USD\"\n  }\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Send Notification",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/notifications/send",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept-Language", "value": "fr" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"TRANSFER_COMPLETED\",\n  \"channel\": \"IN_APP\",\n  \"language\": \"fr\",\n  \"recipient\": \"user123\",\n  \"data\": {\n    \"type\": \"Wallet\",\n    \"amount\": \"50.00\",\n    \"currency\": \"USD\",\n    \"reference\": \"TRF-TEST-001\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "List Templates",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/notifications/templates"
+          }
+        }
+      ]
+    },
+    {
+      "name": "S2S Engine",
+      "description": "Server-to-Server Payment Engine — receive funds from external servers, manage credentials, and withdraw to bank accounts.",
+      "item": [
+        {
+          "name": "Receipt Templates",
+          "item": [
+            {
+              "name": "Upload Receipt Template (JSON file)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "x-primestack-key-id", "value": "{{hmac_key_id}}" },
+                  { "key": "x-primestack-timestamp", "value": "{{$timestamp}}000" },
+                  { "key": "x-primestack-signature", "value": "{{hmac_signature}}" }
+                ],
+                "url": "{{base_url}}/s2s/receipt-templates/upload",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Standard Payment Receipt\",\n  \"description\": \"Receipt for incoming S2S payments\",\n  \"isDefault\": true,\n  \"template\": {\n    \"version\": \"1.0\",\n    \"fields\": [\n      { \"key\": \"ref\",      \"label\": \"Payment Reference\", \"source\": \"reference\",          \"required\": true,  \"format\": \"text\" },\n      { \"key\": \"sender\",   \"label\": \"Sender Reference\",  \"source\": \"senderReference\",   \"required\": false, \"format\": \"text\" },\n      { \"key\": \"amount\",   \"label\": \"Amount\",            \"source\": \"amount\",             \"required\": true,  \"format\": \"currency\" },\n      { \"key\": \"fee\",      \"label\": \"Fee\",               \"source\": \"feeAmount\",          \"required\": false, \"format\": \"currency\" },\n      { \"key\": \"net\",      \"label\": \"Net Amount\",        \"source\": \"netAmount\",          \"required\": true,  \"format\": \"currency\" },\n      { \"key\": \"currency\", \"label\": \"Currency\",          \"source\": \"currency\",           \"required\": true,  \"format\": \"text\" },\n      { \"key\": \"wallet\",   \"label\": \"Destination Wallet\",\"source\": \"receiverWalletAddr\",\"required\": true,  \"format\": \"masked\" },\n      { \"key\": \"date\",     \"label\": \"Processed At\",      \"source\": \"createdAt\",          \"required\": true,  \"format\": \"datetime\" },\n      { \"key\": \"journal\",  \"label\": \"Journal Entry\",     \"source\": \"journalEntryRef\",    \"required\": false, \"format\": \"text\" }\n    ],\n    \"footerNote\": \"This receipt is automatically generated by PrimeStack Switch.\"\n  }\n}"
+                }
+              }
+            },
+            {
+              "name": "List Receipt Templates",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "x-primestack-key-id", "value": "{{hmac_key_id}}" },
+                  { "key": "x-primestack-timestamp", "value": "{{$timestamp}}000" },
+                  { "key": "x-primestack-signature", "value": "{{hmac_signature}}" }
+                ],
+                "url": "{{base_url}}/s2s/receipt-templates"
+              }
+            },
+            {
+              "name": "Get Receipt Template",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "x-primestack-key-id", "value": "{{hmac_key_id}}" },
+                  { "key": "x-primestack-timestamp", "value": "{{$timestamp}}000" },
+                  { "key": "x-primestack-signature", "value": "{{hmac_signature}}" }
+                ],
+                "url": "{{base_url}}/s2s/receipt-templates/{{s2s_template_id}}"
+              }
+            },
+            {
+              "name": "Update Receipt Template",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "x-primestack-key-id", "value": "{{hmac_key_id}}" },
+                  { "key": "x-primestack-timestamp", "value": "{{$timestamp}}000" },
+                  { "key": "x-primestack-signature", "value": "{{hmac_signature}}" }
+                ],
+                "url": "{{base_url}}/s2s/receipt-templates/{{s2s_template_id}}",
+                "body": { "mode": "raw", "raw": "{\n  \"description\": \"Updated receipt template\"\n}" }
+              }
+            },
+            {
+              "name": "Delete Receipt Template",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  { "key": "x-primestack-key-id", "value": "{{hmac_key_id}}" },
+                  { "key": "x-primestack-timestamp", "value": "{{$timestamp}}000" },
+                  { "key": "x-primestack-signature", "value": "{{hmac_signature}}" }
+                ],
+                "url": "{{base_url}}/s2s/receipt-templates/{{s2s_template_id}}"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Connections",
+          "item": [
+            {
+              "name": "Create Connection",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const res = pm.response.json();",
+                      "if (res.data && res.data.id) {",
+                      "  pm.collectionVariables.set('s2s_connection_id', res.data.id);",
+                      "  console.log('S2S connection ID set:', res.data.id);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "x-primestack-key-id", "value": "{{hmac_key_id}}" },
+                  { "key": "x-primestack-timestamp", "value": "{{$timestamp}}000" },
+                  { "key": "x-primestack-signature", "value": "{{hmac_signature}}" }
+                ],
+                "url": "{{base_url}}/s2s/connections",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Acme Payment Server\",\n  \"endpointUrl\": \"https://payments.acme.com/api/v1\",\n  \"apiSecret\": \"acme-shared-secret-minimum-16-chars-long\",\n  \"apiKeyHeader\": \"x-api-key\",\n  \"callbackUrl\": \"https://payments.acme.com/webhooks/s2s-receipt\",\n  \"allowedIps\": [\"203.0.113.10\"],\n  \"supportedCurrencies\": [\"USD\", \"EUR\"],\n  \"dailyLimitAmount\": \"50000.00\",\n  \"singleTxLimitAmount\": \"10000.00\",\n  \"metadata\": { \"environment\": \"production\" }\n}"
+                }
+              }
+            },
+            {
+              "name": "List Connections",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "x-primestack-key-id", "value": "{{hmac_key_id}}" },
+                  { "key": "x-primestack-timestamp", "value": "{{$timestamp}}000" },
+                  { "key": "x-primestack-signature", "value": "{{hmac_signature}}" }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/s2s/connections?status=ACTIVE",
+                  "query": [{ "key": "status", "value": "ACTIVE" }]
+                }
+              }
+            },
+            {
+              "name": "Get Connection",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "x-primestack-key-id", "value": "{{hmac_key_id}}" },
+                  { "key": "x-primestack-timestamp", "value": "{{$timestamp}}000" },
+                  { "key": "x-primestack-signature", "value": "{{hmac_signature}}" }
+                ],
+                "url": "{{base_url}}/s2s/connections/{{s2s_connection_id}}"
+              }
+            },
+            {
+              "name": "Update Connection",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "x-primestack-key-id", "value": "{{hmac_key_id}}" },
+                  { "key": "x-primestack-timestamp", "value": "{{$timestamp}}000" },
+                  { "key": "x-primestack-signature", "value": "{{hmac_signature}}" }
+                ],
+                "url": "{{base_url}}/s2s/connections/{{s2s_connection_id}}",
+                "body": { "mode": "raw", "raw": "{\n  \"status\": \"TESTING\",\n  \"dailyLimitAmount\": \"100000.00\"\n}" }
+              }
+            },
+            {
+              "name": "Rotate API Secret",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "x-primestack-key-id", "value": "{{hmac_key_id}}" },
+                  { "key": "x-primestack-timestamp", "value": "{{$timestamp}}000" },
+                  { "key": "x-primestack-signature", "value": "{{hmac_signature}}" }
+                ],
+                "url": "{{base_url}}/s2s/connections/{{s2s_connection_id}}/rotate-secret",
+                "body": { "mode": "raw", "raw": "{\n  \"newSecret\": \"new-secure-secret-min-16-chars-long\"\n}" }
+              }
+            },
+            {
+              "name": "Ping Connection",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "x-primestack-key-id", "value": "{{hmac_key_id}}" },
+                  { "key": "x-primestack-timestamp", "value": "{{$timestamp}}000" },
+                  { "key": "x-primestack-signature", "value": "{{hmac_signature}}" }
+                ],
+                "url": "{{base_url}}/s2s/connections/{{s2s_connection_id}}/ping"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Payments (Receive Funds)",
+          "item": [
+            {
+              "name": "Receive Payment (from remote server)",
+              "description": "Called by the remote partner server to push funds into PrimeStack.\n\nRequired headers:\n- x-s2s-timestamp: Unix ms timestamp\n- x-s2s-nonce: Random UUID or hex string\n- x-s2s-signature: HMAC-SHA256(apiSecret, JSON.stringify({connectionId, amount, currency, timestamp, nonce, senderReference}))\n- x-s2s-idempotency-key: Unique key per payment attempt",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "x-primestack-key-id", "value": "{{hmac_key_id}}" },
+                  { "key": "x-primestack-timestamp", "value": "{{$timestamp}}000" },
+                  { "key": "x-primestack-signature", "value": "{{hmac_signature}}" },
+                  { "key": "x-s2s-timestamp", "value": "{{$timestamp}}000" },
+                  { "key": "x-s2s-nonce", "value": "{{$randomUUID}}" },
+                  { "key": "x-s2s-signature", "value": "COMPUTE_IN_PRE_REQUEST_SCRIPT" },
+                  { "key": "x-s2s-idempotency-key", "value": "{{$randomUUID}}" }
+                ],
+                "url": "{{base_url}}/s2s/connections/{{s2s_connection_id}}/receive",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": \"1500.00\",\n  \"currency\": \"USD\",\n  \"feeAmount\": \"15.00\",\n  \"senderReference\": \"ACME-TXN-20261103-001\",\n  \"senderAccountId\": \"acme-user-id-12345\",\n  \"receiverWalletAddr\": \"WALLET-MERCHANT-001-USD\",\n  \"metadata\": {\n    \"orderId\": \"ORD-2026-5511\",\n    \"customerId\": \"CUST-001\"\n  }\n}"
+                }
+              }
+            },
+            {
+              "name": "List Payments",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "x-primestack-key-id", "value": "{{hmac_key_id}}" },
+                  { "key": "x-primestack-timestamp", "value": "{{$timestamp}}000" },
+                  { "key": "x-primestack-signature", "value": "{{hmac_signature}}" }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/s2s/payments?status=COMPLETED&page=1&pageSize=20",
+                  "query": [
+                    { "key": "status", "value": "COMPLETED" },
+                    { "key": "page", "value": "1" },
+                    { "key": "pageSize", "value": "20" }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Payment",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "x-primestack-key-id", "value": "{{hmac_key_id}}" },
+                  { "key": "x-primestack-timestamp", "value": "{{$timestamp}}000" },
+                  { "key": "x-primestack-signature", "value": "{{hmac_signature}}" }
+                ],
+                "url": "{{base_url}}/s2s/payments/{{s2s_payment_id}}"
+              }
+            },
+            {
+              "name": "Get Payment Receipt",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "x-primestack-key-id", "value": "{{hmac_key_id}}" },
+                  { "key": "x-primestack-timestamp", "value": "{{$timestamp}}000" },
+                  { "key": "x-primestack-signature", "value": "{{hmac_signature}}" }
+                ],
+                "url": "{{base_url}}/s2s/payments/{{s2s_payment_id}}/receipt"
+              }
+            },
+            {
+              "name": "Reverse Payment",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "x-primestack-key-id", "value": "{{hmac_key_id}}" },
+                  { "key": "x-primestack-timestamp", "value": "{{$timestamp}}000" },
+                  { "key": "x-primestack-signature", "value": "{{hmac_signature}}" }
+                ],
+                "url": "{{base_url}}/s2s/payments/{{s2s_payment_id}}/reverse",
+                "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Customer requested reversal\"\n}" }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bank Withdrawals",
+          "item": [
+            {
+              "name": "Create Bank Withdrawal",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const res = pm.response.json();",
+                      "if (res.data && res.data.id) {",
+                      "  pm.collectionVariables.set('s2s_withdrawal_id', res.data.id);",
+                      "  console.log('S2S withdrawal ID set:', res.data.id);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "x-primestack-key-id", "value": "{{hmac_key_id}}" },
+                  { "key": "x-primestack-timestamp", "value": "{{$timestamp}}000" },
+                  { "key": "x-primestack-signature", "value": "{{hmac_signature}}" }
+                ],
+                "url": "{{base_url}}/s2s/withdrawals",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"connectionId\": \"{{s2s_connection_id}}\",\n  \"walletAddress\": \"WALLET-MERCHANT-001-USD\",\n  \"amount\": \"5000.00\",\n  \"currency\": \"USD\",\n  \"feeAmount\": \"25.00\",\n  \"bankName\": \"Community Federal Savings Bank\",\n  \"bankCountry\": \"US\",\n  \"accountHolderName\": \"Acme Corp LLC\",\n  \"accountNumber\": \"8335373337\",\n  \"routingNumber\": \"026073008\",\n  \"swiftBic\": \"CFSBUSNY\",\n  \"bankAddress\": \"5 Penn Plaza, 14th Floor, New York, NY 10001\",\n  \"metadata\": { \"purposeCode\": \"SUPP\" }\n}"
+                }
+              }
+            },
+            {
+              "name": "List Withdrawals",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "x-primestack-key-id", "value": "{{hmac_key_id}}" },
+                  { "key": "x-primestack-timestamp", "value": "{{$timestamp}}000" },
+                  { "key": "x-primestack-signature", "value": "{{hmac_signature}}" }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/s2s/withdrawals?status=SUBMITTED",
+                  "query": [{ "key": "status", "value": "SUBMITTED" }]
+                }
+              }
+            },
+            {
+              "name": "Get Withdrawal",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "x-primestack-key-id", "value": "{{hmac_key_id}}" },
+                  { "key": "x-primestack-timestamp", "value": "{{$timestamp}}000" },
+                  { "key": "x-primestack-signature", "value": "{{hmac_signature}}" }
+                ],
+                "url": "{{base_url}}/s2s/withdrawals/{{s2s_withdrawal_id}}"
+              }
+            },
+            {
+              "name": "Update Withdrawal Status",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "x-primestack-key-id", "value": "{{hmac_key_id}}" },
+                  { "key": "x-primestack-timestamp", "value": "{{$timestamp}}000" },
+                  { "key": "x-primestack-signature", "value": "{{hmac_signature}}" }
+                ],
+                "url": "{{base_url}}/s2s/withdrawals/{{s2s_withdrawal_id}}/status",
+                "body": { "mode": "raw", "raw": "{\n  \"status\": \"COMPLETED\"\n}" }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
