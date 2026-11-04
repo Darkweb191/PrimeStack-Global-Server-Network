@@ -1,4 +1,4 @@
-# PrimeStack Switch — Setup Guide
+# PrimeStack Global Server Network — Setup Guide
 
 ## Prerequisites
 
@@ -105,7 +105,7 @@ Output:
 [INFO] Redis connected
 [INFO] i18n initialized { languages: ['en','fr','es','ar','pt'] }
 [INFO] Fastify application configured
-[INFO] PrimeStack Switch started — development mode { port: 8081 }
+[INFO] PrimeStack Global Server Network started — development mode { port: 8081 }
 [INFO] API documentation available at /docs
 ```
 
@@ -126,7 +126,7 @@ Invoke-WebRequest http://localhost:8081/health | Select-Object -ExpandProperty C
 
 ## Testing with Postman
 
-1. Import `primestack-switch.postman_collection.json` into Postman
+1. Import `primestack-global-server-network.postman_collection.json` into Postman
 2. Set the collection variable `base_url` to `http://localhost:8081`
 3. Run **Admin → Login** first — it auto-saves the JWT token
 4. Set `merchant_id` to the ID of a created merchant
@@ -161,7 +161,7 @@ npm install
 ## Project Structure
 
 ```
-primestack-switch/
+primestack-global-server-network/
 ├── prisma/
 │   ├── schema.prisma       # Full database schema (30+ models)
 │   └── seed.ts             # Initial data seeder
@@ -195,7 +195,7 @@ primestack-switch/
 ├── .env                    # Local environment (not committed)
 ├── .env.example            # Environment template
 ├── docker-compose.yml      # PostgreSQL + Redis
-├── primestack-switch.postman_collection.json
+├── primestack-global-server-network.postman_collection.json
 └── SETUP.md                # This file
 ```
 

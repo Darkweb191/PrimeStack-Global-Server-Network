@@ -109,7 +109,7 @@ export async function createApp(): Promise<FastifyInstance> {
   await app.register(swagger, {
     swagger: {
       info: {
-        title: "PrimeStack Switch API",
+        title: "PrimeStack Global Server Network API",
         description: "Payment switch and asset gateway API",
         version: "1.0.0",
       },

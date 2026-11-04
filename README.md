@@ -1,4 +1,4 @@
-# PrimeStack Switch — Project Guide
+# PrimeStack Global Server Network — Project Guide
 
 PrimeStack is a payment-switch and asset-gateway codebase containing a TypeScript/Fastify API, a separate Docker Compose service implementation, and a standalone dashboard. It includes foundations for ledger-backed transfers, card transaction lifecycles, merchant operations, ISO 8583, settlement, risk, and administration.
 
@@ -115,7 +115,7 @@ The root Fastify application registers the modules below in `src/app.ts`. Descri
 | `network` | Network security facilities such as IP allowlisting and key-related workflows. |
 | `api-gateway` | API gateway, request-log, and developer-facing API resources for the root app. |
 | `swift-payout` | Administrator-only ISO 20022 payout draft generation; does not transmit a payment or prove settlement. |
-| `pag` | PrimeStack Asset Gateway foundation: asset/network metadata, routes, conversion-rate configuration, liquidity snapshots, and compliance-review records. It does not execute asset settlement or automated screening. |
+| `pag` | PrimeStack Global Server Network foundation: asset/network metadata, routes, conversion-rate configuration, liquidity snapshots, and compliance-review records. It does not execute asset settlement or automated screening. |
 | `developer-platform` | Application and partner metadata, credential lifecycle, product/rate-plan metadata, webhook endpoint records, and SDK-version records. Several integrations described in its API are metadata-only foundations; see below. |
 | `governance` | Governance record workflows for risks, continuity, backup evidence, key metadata, retention policies, change requests, and vendors. Records do not execute the operational controls they describe. |
 | `intelligence` | Read-only operational summaries, currency-separated activity, arithmetic baselines, recommendations, and attributed events. It does not autonomously change routing, risk, or treasury settings. |
@@ -218,7 +218,7 @@ The root `docker-compose.yml` and `services/docker-compose.yml` both define Post
 
 ### Windows launcher
 
-`start-primestack.bat` starts the Docker service stack and then starts `start-dashboard.js` on port 8081; it does **not** start `src/server.ts` or the root Fastify API. The launcher includes a machine-specific `D:\PrimeStack Asset Gateway` path, so edit that path before using it elsewhere. It waits for a fixed number of containers, which is not a full readiness or production validation.
+`start-primestack.bat` starts the Docker service stack and then starts `start-dashboard.js` on port 8081; it does **not** start `src/server.ts` or the root Fastify API. The launcher includes a machine-specific `D:\PrimeStack Global Server Network` path, so edit that path before using it elsewhere. It waits for a fixed number of containers, which is not a full readiness or production validation.
 
 Review `stop-primestack.bat` before running it: in addition to stopping Compose stacks, it executes `docker system prune -f`, which removes unused Docker resources outside this project. Back up or preserve any Docker resources you need first.
 
@@ -229,7 +229,7 @@ The root Fastify app reads environment values from `.env` using `dotenv`. `.env.
 | Variable | Purpose | Development default/fallback |
 |---|---|---|
 | `NODE_ENV` | Runtime environment | `development` |
-| `APP_NAME` | Service name | `primestack-switch` |
+| `APP_NAME` | Service name | `primestack-global-server-network` |
 | `HOST`, `PORT` | Fastify bind address and port | `0.0.0.0`, `8081` |
 | `LOG_LEVEL` | Pino log level | `info` |
 | `DATABASE_URL` | Root Prisma PostgreSQL connection string | Local example in `.env.example`; configure it for your database |
@@ -287,7 +287,7 @@ Fastify registers JWT, HMAC, IP-whitelist, rate-limit, CORS, security-header, re
 - Merchant-facing APIs use HMAC authentication where configured. The root app's configured header prefix defaults to `x-primestack`; protect client secrets and never include them in source, screenshots, logs, or support messages.
 - IP filtering is another control and does not replace authentication or authorization.
 - The Fastify server applies a global rate limit and supports CORS. Production origins, proxy trust, rate limits, and IP rules must be reviewed and explicitly configured.
-- Swagger at `/docs` is the primary way to inspect registered root-app request/response schemas. The `primestack-switch.postman_collection.json` file can be imported into Postman for API exploration; use disposable credentials and data.
+- Swagger at `/docs` is the primary way to inspect registered root-app request/response schemas. The `primestack-global-server-network.postman_collection.json` file can be imported into Postman for API exploration; use disposable credentials and data.
 
 The standalone dashboard's APIs are separate. Do not infer JWT/HMAC protection from Fastify plugins for any route served by `start-dashboard.js`.
 
@@ -301,7 +301,7 @@ Wallet transfers are a separate flow: the wallet route validates wallets, curren
 
 The administrator-only SWIFT payout draft tool is available at `http://localhost:8081/admin/swift-payout-draft`. It prepares a single ISO 20022 `pacs.008.001.08` XML draft from entered debtor, creditor, account, amount, BIC, and settlement details. The draft endpoint validates basic structure and IBAN checksums and does not save the bank details or transmit the message. This is not a bank-certified CBPR+ validation and does not move funds; actual payout requires an authorized bank/PSP integration, their profile rules, and their own transmission and acknowledgement workflow.
 
-The PrimeStack Asset Gateway operations foundation is at `http://localhost:8081/admin/pag-dashboard` (admin JWT; writes require `SUPER_ADMIN`, `ADMIN`, or `OPERATOR`). For an existing database, apply `prisma/migrations/20261022020000_pag_foundation/migration.sql` after the Phase 10 merchant migration; a fresh database or one updated with `prisma db push` using the current schema must not apply the SQL separately. PAG provides asset/network registries, route configuration and weighted route recommendations, conversion-rate configuration, liquidity snapshot management, asset-account registration, and manual compliance-review records. Route recommendations do not reserve liquidity, perform conversion, run sanctions/AML screening, post the asset ledger, or execute settlement. Liquidity values are operator-maintained snapshots, not verified balances; compliance records are not automated screening.
+The PrimeStack Global Server Network operations foundation is at `http://localhost:8081/admin/pag-dashboard` (admin JWT; writes require `SUPER_ADMIN`, `ADMIN`, or `OPERATOR`). For an existing database, apply `prisma/migrations/20261022020000_pag_foundation/migration.sql` after the Phase 10 merchant migration; a fresh database or one updated with `prisma db push` using the current schema must not apply the SQL separately. PAG provides asset/network registries, route configuration and weighted route recommendations, conversion-rate configuration, liquidity snapshot management, asset-account registration, and manual compliance-review records. Route recommendations do not reserve liquidity, perform conversion, run sanctions/AML screening, post the asset ledger, or execute settlement. Liquidity values are operator-maintained snapshots, not verified balances; compliance records are not automated screening.
 
 The Developer Platform foundation dashboard is at `http://localhost:8081/admin/developer-platform-dashboard` (admin JWT). For an existing database, apply `prisma/migrations/20261023010000_developer_platform_foundation/migration.sql` after earlier schema migrations; on a fresh database, or after `prisma db push` using the current schema, do not apply it separately. Administrators can register applications, issue/rotate/revoke app credentials, assign API products and rate-plan metadata, register webhook endpoints, and manage SDK-version metadata, partner records, and certification status. Application API secrets are shown once and stored as SHA-256 hashes; credential lifecycle management is restricted to `SUPER_ADMIN` and `ADMIN`. This foundation does not authenticate those application keys on API traffic, enforce rate plans/product access, deliver webhooks, provide OAuth, isolate tenants, publish marketplace plugins, serve SDK downloads, or produce usage analytics. Webhook callback URLs are configuration only and are not contacted.
 
@@ -405,4 +405,4 @@ Before any real-money or production use, complete the applicable roadmap gates: 
 - [Service architecture](./services/ARCHITECTURE.md) — independent containerized services, roles, and port mapping.
 - [Service startup](./services/START.md) — running the Compose stack and service-specific development.
 - [Phase 17 implementation roadmap](./PHASE_17_IMPLEMENTATION_ROADMAP.md) — phased delivery sequence, MVP boundaries, and production release gates.
-- [Postman collection](./primestack-switch.postman_collection.json) — request examples for API exploration; use only non-production credentials.
+- [Postman collection](./primestack-global-server-network.postman_collection.json) — request examples for API exploration; use only non-production credentials.

@@ -1,7 +1,7 @@
 {
-  "name": "primestack-switch",
+  "name": "primestack-global-server-network",
   "version": "1.0.0",
-  "description": "PrimeStack Asset Gateway — Production-grade payment switch with double-entry ledger, ISO8583 engine, and multi-currency transfer processing",
+  "description": "PrimeStack Global Server Network — Production-grade global server network with double-entry ledger, ISO8583 engine, and multi-currency transfer processing",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",

@@ -32,7 +32,7 @@ function list(key: string, fallback: string[]): string[] {
 
 export const config = {
   app: {
-    name: required("APP_NAME", "primestack-switch"),
+    name: required("APP_NAME", "primestack-global-server-network"),
     env: required("NODE_ENV", "development"),
     port: int("PORT", 8081),
     host: required("HOST", "0.0.0.0"),

@@ -5,7 +5,7 @@ import { prisma } from "./core/database.js";
 import { redis } from "./core/redis.js";
 
 /**
- * PrimeStack Switch — Server Entry Point
+ * PrimeStack Global Server Network — Server Entry Point
  */
 async function start(): Promise<void> {
   try {
@@ -18,7 +18,7 @@ async function start(): Promise<void> {
 
     logger.info(
       { host: config.app.host, port: config.app.port, env: config.app.env },
-      `PrimeStack Switch started — ${config.app.env} mode`,
+      `PrimeStack Global Server Network started — ${config.app.env} mode`,
     );
 
     logger.info(

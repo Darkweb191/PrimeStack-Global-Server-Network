@@ -1,4 +1,4 @@
-// start-dashboard.js — PrimeStack Payment Switch Admin Dashboard
+// start-dashboard.js — PrimeStack Global Server Network Admin Dashboard
 // Node.js HTTP server, no framework, no external deps
 import { createServer } from 'http';
 import { request as httpRequest } from 'http';
@@ -540,7 +540,7 @@ function landingPage() {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PrimeStack — Payment Switch &amp; Asset Gateway</title>
+<title>PrimeStack — Global Server Network &amp; Asset Gateway</title>
 ${CSS}
 <style>
 .landing{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;background:var(--bg)}
@@ -558,7 +558,7 @@ ${CSS}
   <div class="landing-hero">
     <div class="landing-logo"><span class="landing-mark">${svgIcon('grid')}</span>Prime<span>Stack Global Payment Network</span></div>
     <div class="landing-tagline" style="font-size:1rem;color:var(--text2);margin-top:4px;letter-spacing:.5px;font-weight:600;text-transform:uppercase">PRIMESTACK GLOBAL SERVER NETWORK</div>
-    <div class="landing-tagline">Live international payment switch &mdash; ISO 20022 CBPR+, SWIFT GPI, SEPA, Fedwire.<br>Receiving banks: USA &bull; Germany &bull; Singapore &bull; India &bull; UK</div>
+    <div class="landing-tagline">Live international global server network &mdash; ISO 20022 CBPR+, SWIFT GPI, SEPA, Fedwire.<br>Receiving banks: USA &bull; Germany &bull; Singapore &bull; India &bull; UK</div>
     <div class="landing-version">v201.3 — PrimeStack Global Server Network</div>
   </div>
   <div class="portal-grid" style="max-width:900px;width:100%;margin-top:40px">

@@ -31,7 +31,7 @@ services:
       - key: LOG_LEVEL
         value: info
       - key: APP_NAME
-        value: primestack-global-payment-network
+        value: primestack-global-server-network
       - key: DATABASE_URL
         fromDatabase:
           name: primestack-postgres
