@@ -1,9 +1,8 @@
-import { FastifyInstance, FastifyReply } from "fastify";
+import { FastifyReply } from "fastify";
 import { Prisma, type PrismaClient } from "@prisma/client";
-import { ConflictError, ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } from "../../core/errors.js";
+import { ConflictError, NotFoundError, UnauthorizedError, ValidationError } from "../../core/errors.js";
 import { logger } from "../../core/logger.js";
 import { hashPassword, verifyPassword } from "../../shared/utils/crypto.js";
-import { config } from "../../config/index.js";
 import type { CreateUserInput, UpdateUserInput, UpdateKycInput } from "./types.js";
 
 /**

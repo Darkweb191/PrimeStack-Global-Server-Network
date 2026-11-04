@@ -42,7 +42,7 @@ function computeSignature(secret: string, data: string): string {
 }
 
 export async function hmacAuthPlugin(app: FastifyInstance): Promise<void> {
-  app.addHook("onRequest", async (request: FastifyRequest, reply: FastifyReply) => {
+  app.addHook("onRequest", async (request: FastifyRequest, _reply: FastifyReply) => {
     // Skip auth for health, docs, and admin login routes
     if (
       request.url.startsWith("/health") ||
@@ -81,6 +81,9 @@ export async function hmacAuthPlugin(app: FastifyInstance): Promise<void> {
     if (!hmacKey) {
       throw new HmacSignatureError("Unknown key ID");
     }
+    if (!hmacKey.merchant) {
+      throw new HmacSignatureError("Key is not associated with a merchant");
+    }
 
     // Compute expected signature
     const body = request.body ? JSON.stringify(request.body) : "";
@@ -110,7 +113,7 @@ export async function hmacAuthPlugin(app: FastifyInstance): Promise<void> {
  * Used with @fastify/jwt — verify the token and attach user.
  */
 export async function jwtAuthHook(app: FastifyInstance): Promise<void> {
-  app.decorate("authenticate", async (request: FastifyRequest, reply: FastifyReply) => {
+  app.decorate("authenticate", async (request: FastifyRequest, _reply: FastifyReply) => {
     try {
       await request.jwtVerify();
     } catch {

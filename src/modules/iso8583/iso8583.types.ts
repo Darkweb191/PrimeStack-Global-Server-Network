@@ -125,13 +125,13 @@ export const MTI_VALUES = {
 
 export const parseMessageSchema = z.object({
   message: z.string().min(1, "ISO8583 message hex string is required"),
-  encoding: z.enum(["ascii", "ebcdic", "binary"]).default("ascii"),
+  encoding: z.enum(["ascii", "binary"]).default("ascii"),
 });
 
 export const buildMessageSchema = z.object({
   mti: z.string().length(4),
   fields: z.record(z.string()),
-  encoding: z.enum(["ascii", "ebcdic", "binary"]).default("ascii"),
+  encoding: z.enum(["ascii", "binary"]).default("ascii"),
 });
 
 export const createHostConnectionSchema = z.object({

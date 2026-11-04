@@ -130,7 +130,7 @@ export const createS2sPaymentSchema = z.object({
    */
   connectionId: z.string().uuid("connectionId must be a valid UUID"),
   amount: z.union([z.string(), z.number()]).transform((v: string | number) => String(v)),
-  currency: z.string().min(3).max(3).default("USD").toUpperCase(),
+  currency: z.string().min(3).max(3).default("USD").transform((v) => v.toUpperCase()),
   feeAmount: z
     .union([z.string(), z.number()])
     .optional()
@@ -171,7 +171,7 @@ export const createBankWithdrawalSchema = z.object({
    */
   walletAddress: z.string().min(1),
   amount: z.union([z.string(), z.number()]).transform((v: string | number) => String(v)),
-  currency: z.string().min(3).max(3).default("USD").toUpperCase(),
+  currency: z.string().min(3).max(3).default("USD").transform((v) => v.toUpperCase()),
   feeAmount: z
     .union([z.string(), z.number()])
     .optional()
@@ -190,8 +190,7 @@ export const createBankWithdrawalSchema = z.object({
   bankAddress: z.string().max(500).optional(),
   metadata: z.record(z.unknown()).optional(),
 }).refine(
-  (data: { iban?: string; accountNumber?: string; swiftBic?: string }) =>
-    data.iban || data.accountNumber || data.swiftBic,
+  (data) => data.iban || data.accountNumber || data.swiftBic,
   { message: "At least one of: iban, accountNumber, or swiftBic must be provided" },
 );
 

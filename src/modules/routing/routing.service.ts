@@ -1,5 +1,5 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
-import { NotFoundError, ValidationError } from "../../core/errors.js";
+import { NotFoundError } from "../../core/errors.js";
 import { logger } from "../../core/logger.js";
 import type { CreateRouteInput, UpdateRouteInput } from "./routing.types.js";
 

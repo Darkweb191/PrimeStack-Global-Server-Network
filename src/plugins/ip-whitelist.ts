@@ -15,6 +15,12 @@ import { logger } from "../core/logger.js";
  * or the plugin can be applied globally with specific routes excluded.
  */
 
+declare module "fastify" {
+  interface FastifyContextConfig {
+    ipWhitelist?: boolean;
+  }
+}
+
 const WHITELIST_CACHE_KEY = "ipwhitelist:active";
 const CACHE_TTL_SECONDS = 60;
 
@@ -74,15 +80,14 @@ export async function invalidateIpWhitelistCache(): Promise<void> {
 }
 
 export async function ipWhitelistPlugin(app: FastifyInstance): Promise<void> {
-  app.addHook("onRequest", async (request: FastifyRequest, reply: FastifyReply) => {
+  app.addHook("onRequest", async (request: FastifyRequest, _reply: FastifyReply) => {
     // Skip for health checks and internal routes
     if (request.url.startsWith("/health") || request.url.startsWith("/docs")) {
       return;
     }
 
     // Check if route has ipWhitelist enabled
-    const routeConfig = (request.routeOptions?.config ?? {}) as Record<string, unknown>;
-    if (routeConfig.ipWhitelist === false) {
+    if (request.routeOptions?.config?.ipWhitelist === false) {
       return; // explicitly disabled on this route
     }
 

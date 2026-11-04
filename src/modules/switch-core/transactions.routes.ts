@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { AuthorizationService } from "./authorization.service.js";
-import { sendSuccess, sendCreated, sendPaginated, parsePagination } from "../../shared/utils/response.js";
+import { sendSuccess, sendPaginated, parsePagination } from "../../shared/utils/response.js";
 import { NotFoundError, ValidationError } from "../../core/errors.js";
 import { renderTransactionSummary } from "./transaction-summary.js";
 

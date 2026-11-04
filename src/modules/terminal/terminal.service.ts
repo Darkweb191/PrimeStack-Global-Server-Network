@@ -1,5 +1,5 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
-import { ConflictError, NotFoundError, ValidationError } from "../../core/errors.js";
+import { ConflictError, NotFoundError } from "../../core/errors.js";
 import { logger } from "../../core/logger.js";
 import type {
   RegisterTerminalInput,

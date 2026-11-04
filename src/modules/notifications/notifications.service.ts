@@ -1,7 +1,7 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
 import { i18next } from "../../core/i18n.js";
 import { logger } from "../../core/logger.js";
-import { NotFoundError, ValidationError } from "../../core/errors.js";
+import { NotFoundError } from "../../core/errors.js";
 
 /**
  * Notification Service

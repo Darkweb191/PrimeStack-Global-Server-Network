@@ -1,6 +1,6 @@
 import { createHmac, randomBytes, randomUUID, timingSafeEqual } from "crypto";
 import { isIP } from "net";
-import { type PrismaClient } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
 import { Decimal } from "../../core/decimal.js";
 import { redis } from "../../core/redis.js";
 import {
@@ -512,7 +512,7 @@ export class S2sEngineService {
 
     // FIX 7: full atomic transaction — insert payment + ledger + mark COMPLETED
     try {
-      await this.prisma.$transaction(async (tx: PrismaClient) => {
+      await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         // Insert payment record (PROCESSING)
         await tx.$executeRaw`
           INSERT INTO "S2sPayment"

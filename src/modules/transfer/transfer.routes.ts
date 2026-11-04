@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { TransferService } from "./transfer.service.js";
 import { createTransferSchema, bulkTransferSchema } from "./types.js";
 import { sendSuccess, sendCreated, sendPaginated, parsePagination } from "../../shared/utils/response.js";
-import { ValidationError, NotFoundError } from "../../core/errors.js";
+import { ValidationError } from "../../core/errors.js";
 
 /**
  * Transfer REST routes.

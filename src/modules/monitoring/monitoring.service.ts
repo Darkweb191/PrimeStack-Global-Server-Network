@@ -1,6 +1,5 @@
-import { Prisma, type PrismaClient } from "@prisma/client";
+import { type PrismaClient } from "@prisma/client";
 import { redis } from "../../core/redis.js";
-import { logger } from "../../core/logger.js";
 
 /**
  * Monitoring Service

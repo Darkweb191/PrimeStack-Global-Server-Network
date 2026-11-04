@@ -1,4 +1,4 @@
-import { Prisma, type PrismaClient } from "@prisma/client";
+import { type PrismaClient } from "@prisma/client";
 import { createHmac, randomBytes } from "crypto";
 import { redis } from "../../core/redis.js";
 import { logger } from "../../core/logger.js";
@@ -67,11 +67,11 @@ export class ApiGatewayService {
     const entries = await redis.xrevrange(key, "+", "-", "COUNT", count);
 
     return entries.map(([id, fields]) => {
-      const obj: Record<string, string> = {};
+      const obj: Record<string, string> = { id };
       for (let i = 0; i < fields.length; i += 2) {
         obj[fields[i]] = fields[i + 1];
       }
-      return { id, ...obj };
+      return obj;
     }).filter((e) => {
       if (filters.merchantId && e.merchantId !== filters.merchantId) return false;
       if (filters.path && !e.path?.includes(filters.path)) return false;

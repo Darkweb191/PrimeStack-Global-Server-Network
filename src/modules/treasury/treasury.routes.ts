@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { TreasuryService } from "./treasury.service.js";
-import { sendSuccess, sendCreated, parsePagination } from "../../shared/utils/response.js";
+import { sendSuccess, sendCreated } from "../../shared/utils/response.js";
 import { ValidationError } from "../../core/errors.js";
 
 /**

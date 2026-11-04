@@ -18,12 +18,6 @@ function int(key: string, fallback: number): number {
   return parsed;
 }
 
-function bool(key: string, fallback: boolean): boolean {
-  const raw = process.env[key];
-  if (raw === undefined) return fallback;
-  return raw === "true" || raw === "1";
-}
-
 function list(key: string, fallback: string[]): string[] {
   const raw = process.env[key];
   if (!raw) return fallback;

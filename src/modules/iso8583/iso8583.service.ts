@@ -189,7 +189,7 @@ export class Iso8583Service {
         direction: trace.direction,
         mti: trace.mti,
         bitmap: trace.bitmap,
-        fields: trace.fields as Prisma.InputJsonValue | undefined,
+        fields: (trace.fields ?? {}) as Prisma.InputJsonValue,
         rawMessage: trace.rawMessage ?? undefined,
         size: trace.size,
         duration: trace.duration,
@@ -374,7 +374,7 @@ export class Iso8583Service {
   private buildField(
     value: string,
     def: FieldDef,
-    encoding: "ascii" | "binary",
+    _encoding: "ascii" | "binary",
   ): string {
     if (def.lengthType === "fixed") {
       // Pad to maxLength if needed

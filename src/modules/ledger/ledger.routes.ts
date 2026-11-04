@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { LedgerService } from "./ledger.service.js";
 import { createAccountSchema, postEntrySchema, reverseEntrySchema, holdFundsSchema } from "./types.js";
 import { sendSuccess, sendCreated, sendPaginated, parsePagination } from "../../shared/utils/response.js";
-import { AppError, NotFoundError, ValidationError } from "../../core/errors.js";
+import { NotFoundError, ValidationError } from "../../core/errors.js";
 
 /**
  * Ledger REST routes.
@@ -92,7 +92,7 @@ export function registerLedgerRoutes(
   app.post("/ledger/entries/:reference/reverse", async (request: FastifyRequest, reply: FastifyReply) => {
     const { reference } = request.params as { reference: string };
     const parsed = reverseEntrySchema.safeParse({
-      ...request.body,
+      ...(request.body as Record<string, unknown>),
       reference,
     });
 
@@ -111,7 +111,7 @@ export function registerLedgerRoutes(
   app.post("/ledger/accounts/:code/hold", async (request: FastifyRequest, reply: FastifyReply) => {
     const { code } = request.params as { code: string };
     const parsed = holdFundsSchema.safeParse({
-      ...request.body,
+      ...(request.body as Record<string, unknown>),
       accountCode: code,
     });
 
