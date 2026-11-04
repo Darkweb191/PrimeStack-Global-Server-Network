@@ -1,0 +1,1937 @@
+// ════════════════════════════════════════════════════════════════
+// PrimeStack Switch — Database Schema
+// Full data model for the payment switch platform.
+// The ledger models (Account, JournalEntry, JournalLine) are the
+// foundation — every other module writes to them.
+// ════════════════════════════════════════════════════════════════
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ──────────────────────────────────────────────
+// ENUMS
+// ──────────────────────────────────────────────
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+enum AccountStatus {
+  ACTIVE
+  FROZEN
+  CLOSED
+}
+
+enum JournalEntryType {
+  TRANSFER
+  SETTLEMENT
+  FEE
+  REVERSAL
+  ADJUSTMENT
+  CHARGEBACK
+  REFUND
+  PAYOUT
+}
+
+enum JournalEntryStatus {
+  PENDING
+  POSTED
+  REVERSED
+  REJECTED
+}
+
+enum MerchantStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  ACTIVE
+  SUSPENDED
+  BLOCKED
+  TERMINATED
+}
+
+enum TerminalStatus {
+  REGISTERED
+  ACTIVE
+  INACTIVE
+  DISABLED
+  DECOMMISSIONED
+}
+
+enum TerminalHealthStatus {
+  ONLINE
+  OFFLINE
+  DEGRADED
+  MAINTENANCE
+}
+
+enum TransferType {
+  T2T
+  S2S
+  IP2IP
+  WALLET
+  MERCHANT
+  BULK
+}
+
+enum TransferStatus {
+  INITIATED
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REVERSED
+  PARTIAL
+}
+
+enum PagAssetType {
+  FIAT
+  DIGITAL
+  LOYALTY
+  REWARD
+  STORED_VALUE
+  MERCHANT_CREDIT
+}
+
+enum TransactionType {
+  AUTHORIZATION
+  REVERSAL
+  ADVICE
+  REFUND
+  VERIFICATION
+  SETTLEMENT
+}
+
+enum TransactionStatus {
+  INITIATED
+  AUTHORIZED
+  DECLINED
+  CAPTURED
+  REVERSED
+  EXPIRED
+  SETTLED
+}
+
+enum WalletType {
+  CUSTOMER
+  AGENT
+  USER
+  MERCHANT
+  ESCROW
+  TREASURY
+  RESERVE
+  SETTLEMENT
+  PAYOUT
+}
+
+enum WalletStatus {
+  ACTIVE
+  FROZEN
+  CLOSED
+}
+
+enum RouteType {
+  PRIMARY
+  FAILOVER
+  PRIORITY
+}
+
+enum RouteStatus {
+  ACTIVE
+  INACTIVE
+  DISABLED
+}
+
+enum IpWhitelistStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum HmacKeyStatus {
+  ACTIVE
+  ROTATED
+  REVOKED
+}
+
+enum HostConnectionStatus {
+  CONNECTED
+  DISCONNECTED
+  ERROR
+  DEGRADED
+}
+
+enum HostConnectionProtocol {
+  TCP
+  TLS
+  NAC
+  HTTP
+}
+
+enum SettlementBatchStatus {
+  OPEN
+  PROCESSING
+  COMPLETED
+  FAILED
+  RECONCILED
+}
+
+enum ReconciliationStatus {
+  PENDING
+  MATCHED
+  MISMATCHED
+  RESOLVED
+}
+
+enum ChargebackStatus {
+  OPEN
+  CONTESTED
+  ACCEPTED
+  LOST
+  EXPIRED
+}
+
+enum FraudRuleType {
+  VELOCITY
+  BLACKLIST
+  WHITELIST
+  AML
+  RISK_SCORE
+  THRESHOLD
+}
+
+enum FraudRuleStatus {
+  ACTIVE
+  INACTIVE
+  PAUSED
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  OPERATOR
+  REVIEWER
+  READONLY
+}
+
+enum KycStatus {
+  NOT_STARTED
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum NotificationType {
+  TRANSACTION
+  TRANSFER
+  SETTLEMENT
+  ALERT
+  SYSTEM
+  COMPLIANCE
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  WEBHOOK
+  IN_APP
+  PUSH
+}
+
+// ──────────────────────────────────────────────
+// LEDGER — Double-Entry Core (PHASE 1)
+// ──────────────────────────────────────────────
+
+model Account {
+  id          String        @id @default(uuid())
+  code        String        @unique // e.g. "1000-ASSET-CASH-USD"
+  name        String
+  type        AccountType
+  subtype     String? // e.g. "WALLET", "SETTLEMENT", "RESERVE"
+  currency    String        @default("USD")
+  parentId    String?
+  parent      Account?      @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children    Account[]     @relation("AccountHierarchy")
+  balance     Decimal        @default(0) @db.Decimal(20, 4)
+  heldBalance Decimal        @default(0) @db.Decimal(20, 4) // pending/held funds
+  status      AccountStatus  @default(ACTIVE)
+  metadata    Json?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  journalLines JournalLine[]
+  wallet       Wallet?
+  floatAccount FloatAccount?
+  merchantAccounts MerchantAccount[]
+
+  @@index([type, status])
+  @@index([parentId])
+  @@index([currency])
+}
+
+model JournalEntry {
+  id          String             @id @default(uuid())
+  reference   String             @unique // external traceable reference
+  entryType   JournalEntryType
+  description String
+  source      String? // T2T, S2S, WALLET, SETTLEMENT, etc.
+  status      JournalEntryStatus @default(PENDING)
+  postedAt    DateTime?
+  postedBy    String? // user or system identifier
+  reversalOf  String? // reference to original entry if reversal
+  metadata    Json?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  lines JournalLine[]
+
+  @@index([status])
+  @@index([entryType])
+  @@index([createdAt])
+  @@index([source])
+}
+
+model JournalLine {
+  id        String   @id @default(uuid())
+  entryId   String
+  entry     JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id])
+  debit     Decimal  @default(0) @db.Decimal(20, 4)
+  credit    Decimal  @default(0) @db.Decimal(20, 4)
+  currency  String   @default("USD")
+  createdAt DateTime @default(now())
+
+  @@index([entryId])
+  @@index([accountId])
+  @@index([createdAt])
+}
+
+// ──────────────────────────────────────────────
+// MERCHANTS
+// ──────────────────────────────────────────────
+
+model Merchant {
+  id              String          @id @default(uuid())
+  code            String          @unique // merchant identifier
+  legalName       String
+  displayName     String?
+  dbaName         String? // "doing business as"
+  email           String          @unique
+  phone           String?
+  country         String          @default("US")
+  preferredLang   String          @default("en") // i18n preference
+  status          MerchantStatus  @default(PENDING)
+  mcc             String? // merchant category code
+  merchantCategory String?
+  riskLevel       String          @default("STANDARD")
+  website         String?
+  taxId           String?
+  pricingPlanId   String?
+  pricingPlan     PricingPlan?    @relation(fields: [pricingPlanId], references: [id], onDelete: SetNull)
+  agentId         String?
+  agent           Agent?          @relation("AgentMerchants", fields: [agentId], references: [id], onDelete: SetNull)
+  metadata        Json?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  terminals       Terminal[]
+  wallets         Wallet[]
+  merchantWallets MerchantWallet[]
+  transfers       Transfer[]      @relation("MerchantTransfers")
+  apiKeys         ApiKey[]
+  hmacKeys        HmacKey[]
+  ipWhitelist     IpWhitelistEntry[]
+  transactions    Transaction[]
+  settlements     SettlementBatch[]
+  kycRecord       KycRecord?
+  kycDocuments    MerchantKycDocument[]
+  merchantIds     MerchantMid[]
+  merchantAccounts MerchantAccount[]
+  riskProfile     MerchantRiskProfile?
+  invoices        Invoice[]
+  paymentLinks    PaymentLink[]
+  auditLogs       AuditLog[]
+  notifications    Notification[]
+  s2sConnections   S2sConnection[] @relation("S2sMerchantConnections")
+
+  @@index([status])
+  @@index([country])
+}
+
+// ──────────────────────────────────────────────
+// TERMINALS
+// ──────────────────────────────────────────────
+
+model Terminal {
+  id              String              @id @default(uuid())
+  tid             String              @unique // terminal ID
+  mid             String? // merchant ID (external)
+  serialNumber    String              @unique
+  merchantId      String
+  merchant       Merchant            @relation(fields: [merchantId], references: [id])
+  model           String? // hardware model
+  osVersion       String?
+  firmwareVersion String?
+  location        String?
+  city            String?
+  country         String              @default("US")
+  timezone        String              @default("UTC")
+  status          TerminalStatus      @default(REGISTERED)
+  config          Json? // EMV params, terminal config
+  lastSeenAt      DateTime?
+  registeredAt    DateTime            @default(now())
+  deactivatedAt   DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  health          TerminalHealth?
+  transactions    Transaction[]
+  remoteCommands  RemoteCommand[]
+  emvParams       EmvParameter[]
+
+  @@index([merchantId])
+  @@index([status])
+  @@index([country])
+}
+
+model TerminalHealth {
+  id              String                @id @default(uuid())
+  terminalId      String                @unique
+  terminal        Terminal              @relation(fields: [terminalId], references: [id], onDelete: Cascade)
+  status          TerminalHealthStatus  @default(OFFLINE)
+  heartbeatAt     DateTime?
+  cpuUsage        Float?
+  memoryUsage     Float?
+  diskUsage       Float?
+  temperature     Float?
+  batteryLevel    Float?
+  networkLatencyMs Int?
+  errorCode       String?
+  errorMessage    String?
+  lastCheckedAt   DateTime              @default(now())
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@index([status])
+}
+
+model RemoteCommand {
+  id          String   @id @default(uuid())
+  terminalId  String
+  terminal    Terminal @relation(fields: [terminalId], references: [id], onDelete: Cascade)
+  command     String // e.g. "REBOOT", "UPDATE_CONFIG", "DOWNLOAD_KEYS"
+  payload     Json?
+  status      String   @default("PENDING") // PENDING, SENT, ACK, FAILED, EXPIRED
+  sentAt      DateTime?
+  ackedAt     DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([terminalId])
+  @@index([status])
+}
+
+model EmvParameter {
+  id          String   @id @default(uuid())
+  terminalId  String
+  terminal    Terminal @relation(fields: [terminalId], references: [id], onDelete: Cascade)
+  aid         String // Application ID
+  label       String
+  version     String?
+  config      Json? // EMV tag data
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([terminalId, aid])
+  @@index([terminalId])
+}
+
+model FirmwareVersion {
+  id          String   @id @default(uuid())
+  version     String   @unique
+  model       String // compatible terminal model
+  checksum    String
+  downloadUrl String?
+  sizeBytes   Int
+  releaseNotes String?
+  status      String   @default("ACTIVE") // ACTIVE, DEPRECATED, RETIRED
+  createdAt   DateTime @default(now())
+
+  @@index([model])
+  @@index([status])
+}
+
+// ──────────────────────────────────────────────
+// TRANSACTIONS (ISO8583)
+// ──────────────────────────────────────────────
+
+model Transaction {
+  id              String             @id @default(uuid())
+  stan            String             @unique // System Trace Audit Number
+  rrn             String? // Retrieval Reference Number
+  merchantId      String
+  merchant       Merchant            @relation(fields: [merchantId], references: [id])
+  terminalId      String?
+  terminal       Terminal?           @relation(fields: [terminalId], references: [id])
+  type            TransactionType
+  status          TransactionStatus   @default(INITIATED)
+  amount          Decimal             @db.Decimal(20, 4)
+  currency        String              @default("USD")
+  cardNumber      String? // PAN (masked in practice)
+  cardBin         String?
+  cardType        String? // VISA, MASTERCARD, etc.
+  approvalCode    String?
+  responseCode    String?
+  responseMessage String?
+  mti             String? // ISO8583 Message Type Indicator
+  bitmap          String? // ISO8583 primary bitmap
+  rawMessage      Bytes? // raw ISO8583 message
+  isoFields       Json? // parsed ISO8583 fields
+  routeId         String?
+  route          Route?              @relation(fields: [routeId], references: [id])
+  transferId      String?
+  journalEntryId  String?
+  processedAt     DateTime?
+  settledAt       DateTime?
+  metadata        Json?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  chargebacks     Chargeback[]
+  transactionLogs TransactionLog[]
+
+  @@index([merchantId])
+  @@index([terminalId])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+  @@index([stan])
+}
+
+model TransactionLog {
+  id            String   @id @default(uuid())
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  stage         String // e.g. "RECEIVED", "PARSED", "AUTHORIZED", "FORWARDED"
+  message       String?
+  isoFields     Json?
+  duration      Int? // ms
+  createdAt     DateTime @default(now())
+
+  @@index([transactionId])
+  @@index([createdAt])
+}
+
+// ──────────────────────────────────────────────
+// TRANSFERS (T2T, S2S, IP2IP, WALLET, MERCHANT, BULK)
+// ──────────────────────────────────────────────
+
+model Transfer {
+  id              String         @id @default(uuid())
+  reference       String         @unique // external reference
+  type            TransferType
+  status          TransferStatus  @default(INITIATED)
+  amount          Decimal         @db.Decimal(20, 4)
+  currency        String          @default("USD")
+  feeAmount       Decimal         @default(0) @db.Decimal(20, 4)
+  netAmount       Decimal         @default(0) @db.Decimal(20, 4)
+
+  // Source and destination are generic — can reference wallets, terminals, merchants
+  sourceType      String // "WALLET", "TERMINAL", "MERCHANT", "BANK"
+  sourceId        String
+  destType        String
+  destId          String
+
+  sourceAccountId String? // ledger account
+  destAccountId   String? // ledger account
+  feeAccountId    String? // ledger account for fees
+
+  merchantId      String?
+  merchant       Merchant?       @relation("MerchantTransfers", fields: [merchantId], references: [id])
+
+  journalEntryRef String? // reference to JournalEntry
+  routeId         String?
+  route          Route?          @relation(fields: [routeId], references: [id])
+
+  description     String?
+  failureReason   String?
+  metadata        Json?
+  initiatedAt     DateTime        @default(now())
+  processedAt     DateTime?
+  completedAt     DateTime?
+  reversedAt      DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([type])
+  @@index([status])
+  @@index([merchantId])
+  @@index([createdAt])
+  @@index([sourceType, sourceId])
+  @@index([destType, destId])
+}
+
+// ──────────────────────────────────────────────
+// WALLETS
+// ──────────────────────────────────────────────
+
+model Wallet {
+  id              String        @id @default(uuid())
+  walletAddress   String        @unique // unique wallet identifier
+  label           String?
+  type            WalletType
+  status          WalletStatus   @default(ACTIVE)
+  merchantId      String?
+  merchant       Merchant?     @relation(fields: [merchantId], references: [id])
+  accountId       String        @unique // linked ledger account
+  account        Account        @relation(fields: [accountId], references: [id])
+  currency        String        @default("USD")
+  preferredLang   String        @default("en")
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  virtualAccounts VirtualAccount[]
+  beneficiaries   Beneficiary[]
+  limits          WalletLimit?
+  holds           WalletHold[]
+  merchantWallet  MerchantWallet?
+  treasuryWallet  TreasuryWallet?
+  merchantAccounts MerchantAccount[]
+  buyerEscrows    EscrowAccount[] @relation("EscrowBuyer")
+  sellerEscrows   EscrowAccount[] @relation("EscrowSeller")
+  escrowAccount   EscrowAccount? @relation("EscrowBalance")
+
+  @@index([type])
+  @@index([status])
+  @@index([merchantId])
+  @@index([currency])
+}
+
+model VirtualAccount {
+  id            String   @id @default(uuid())
+  walletId      String
+  wallet        Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  accountNumber String   @unique
+  currency      String
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  @@unique([walletId, currency])
+  @@index([walletId, active])
+}
+
+model Beneficiary {
+  id                     String   @id @default(uuid())
+  walletId               String
+  wallet                 Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  beneficiaryName        String
+  beneficiaryIdentifier  String
+  createdAt              DateTime @default(now())
+
+  @@unique([walletId, beneficiaryIdentifier])
+  @@index([walletId])
+}
+
+model WalletLimit {
+  id           String   @id @default(uuid())
+  walletId     String   @unique
+  wallet       Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  dailyLimit   Decimal? @db.Decimal(20, 2)
+  monthlyLimit Decimal? @db.Decimal(20, 2)
+  yearlyLimit  Decimal? @db.Decimal(20, 2)
+  updatedAt    DateTime @updatedAt
+}
+
+model WalletHold {
+  id          String    @id @default(uuid())
+  walletId    String
+  wallet      Wallet    @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  amount      Decimal   @db.Decimal(20, 4)
+  reference   String    @unique
+  reason      String
+  releaseDate DateTime?
+  status      String    @default("ACTIVE")
+  createdAt   DateTime  @default(now())
+  releasedAt  DateTime?
+
+  @@index([walletId, status])
+  @@index([releaseDate])
+}
+
+model EscrowAccount {
+  id            String   @id @default(uuid())
+  reference     String   @unique
+  escrowWalletId String  @unique
+  escrowWallet   Wallet  @relation("EscrowBalance", fields: [escrowWalletId], references: [id])
+  buyerWalletId String
+  buyerWallet   Wallet   @relation("EscrowBuyer", fields: [buyerWalletId], references: [id])
+  sellerWalletId String
+  sellerWallet  Wallet   @relation("EscrowSeller", fields: [sellerWalletId], references: [id])
+  amount        Decimal  @db.Decimal(20, 4)
+  currency      String
+  status        String   @default("OPEN")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  fundedAt      DateTime?
+  closedAt      DateTime?
+
+  @@index([buyerWalletId, status])
+  @@index([sellerWalletId, status])
+}
+
+model MerchantWallet {
+  id                    String   @id @default(uuid())
+  merchantId            String
+  merchant              Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  walletId              String   @unique
+  wallet                Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  settlementFrequency   String   @default("DAILY")
+  createdAt             DateTime @default(now())
+
+  @@unique([merchantId, walletId])
+}
+
+model MerchantMid {
+  id         String   @id @default(uuid())
+  merchantId String
+  merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  mid        String   @unique
+  label      String?
+  status     String   @default("ACTIVE")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([merchantId, status])
+}
+
+model MerchantAccount {
+  id                  String   @id @default(uuid())
+  merchantId          String
+  merchant            Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  walletId            String
+  wallet              Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  settlementAccountId String?
+  settlementAccount   Account?  @relation(fields: [settlementAccountId], references: [id], onDelete: SetNull)
+  createdAt           DateTime @default(now())
+
+  @@unique([merchantId, walletId])
+  @@index([settlementAccountId])
+}
+
+model MerchantRiskProfile {
+  id             String   @id @default(uuid())
+  merchantId     String   @unique
+  merchant       Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  dailyLimit     Decimal? @db.Decimal(18, 2)
+  monthlyLimit   Decimal? @db.Decimal(18, 2)
+  chargebackLimit Decimal? @db.Decimal(18, 2)
+  riskScore      Int      @default(0)
+  updatedAt      DateTime @updatedAt
+}
+
+model PricingPlan {
+  id             String   @id @default(uuid())
+  planName       String   @unique
+  transactionFee Decimal  @default(0) @db.Decimal(10, 4)
+  settlementFee Decimal  @default(0) @db.Decimal(10, 4)
+  payoutFee      Decimal  @default(0) @db.Decimal(10, 4)
+  currency       String   @default("USD")
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  merchants      Merchant[]
+
+  @@index([active])
+}
+
+model Agent {
+  id             String   @id @default(uuid())
+  code           String   @unique
+  name           String
+  commissionRate Decimal  @default(0) @db.Decimal(10, 4)
+  parentAgentId  String?
+  parentAgent    Agent?   @relation("AgentHierarchy", fields: [parentAgentId], references: [id], onDelete: SetNull)
+  childAgents    Agent[]  @relation("AgentHierarchy")
+  merchants      Merchant[] @relation("AgentMerchants")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([parentAgentId])
+}
+
+model Invoice {
+  id            String   @id @default(uuid())
+  invoiceNumber String   @unique
+  merchantId    String
+  merchant      Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  amount        Decimal  @db.Decimal(18, 2)
+  currency      String   @default("USD")
+  description   String?
+  status        String   @default("PENDING")
+  dueAt         DateTime?
+  paidAt        DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([merchantId, status, createdAt])
+}
+
+model PaymentLink {
+  id          String   @id @default(uuid())
+  merchantId  String
+  merchant    Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  reference   String   @unique
+  amount      Decimal  @db.Decimal(18, 2)
+  currency    String   @default("USD")
+  description String?
+  status      String   @default("ACTIVE")
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([merchantId, status, createdAt])
+}
+
+model MerchantKycDocument {
+  id                 String   @id @default(uuid())
+  merchantId         String
+  merchant           Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  documentType       String
+  documentReference  String
+  verificationStatus String   @default("PENDING")
+  reviewedBy         String?
+  reviewedAt         DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([merchantId, verificationStatus])
+}
+
+model TreasuryWallet {
+  id        String   @id @default(uuid())
+  walletId  String   @unique
+  wallet    Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  purpose   String
+  createdAt DateTime @default(now())
+}
+
+model FeeRule {
+  id              String   @id @default(uuid())
+  transactionType String
+  feeType         String
+  value           Decimal  @db.Decimal(20, 4)
+  currency        String   @default("USD")
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([transactionType, active])
+}
+
+// ──────────────────────────────────────────────
+// ROUTING ENGINE
+// ──────────────────────────────────────────────
+
+model Route {
+  id          String       @id @default(uuid())
+  name        String
+  type        RouteType
+  status      RouteStatus   @default(ACTIVE)
+  priority     Int          @default(1) // lower = higher priority
+  protocol    String        @default("ISO8583")
+  endpoint    String // host:port
+  hostConnectionId String?
+  hostConnection HostConnection? @relation(fields: [hostConnectionId], references: [id])
+  merchantId  String?
+  binPattern  String? // BIN routing pattern
+  countryCode String? // ISO country code for country routing
+  currency    String?
+  cardType    String? // VISA, MASTERCARD, etc.
+  config      Json? // timeouts, retries, etc.
+  failoverOf  String? // parent route for failover
+  metadata    Json?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  transactions Transaction[]
+  transfers    Transfer[]
+
+  @@index([status])
+  @@index([priority])
+  @@index([merchantId])
+  @@index([binPattern])
+}
+
+model Bin {
+  id          String   @id @default(uuid())
+  bin         String   @unique // first 6-8 digits of PAN
+  cardType    String // VISA, MASTERCARD, AMEX, DISCOVER, etc.
+  cardBrand   String?
+  bankName    String?
+  countryCode String?
+  currency    String?
+  isDebit     Boolean  @default(false)
+  isCredit    Boolean  @default(false)
+  isPrepaid   Boolean  @default(false)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([cardType])
+  @@index([countryCode])
+}
+
+// ──────────────────────────────────────────────
+// NETWORK — IP WHITELIST, HMAC, CERTIFICATES
+// ──────────────────────────────────────────────
+
+model IpWhitelistEntry {
+  id          String            @id @default(uuid())
+  merchantId  String?
+  merchant   Merchant?          @relation(fields: [merchantId], references: [id])
+  ipAddress   String // single IP or CIDR
+  label       String? // description
+  status      IpWhitelistStatus  @default(ACTIVE)
+  expiresAt   DateTime?
+  metadata    Json?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([merchantId])
+  @@index([status])
+  @@index([ipAddress])
+}
+
+model HmacKey {
+  id          String        @id @default(uuid())
+  keyId       String        @unique // public key identifier
+  secret      String // HMAC shared secret (encrypted at rest)
+  merchantId  String?
+  merchant   Merchant?      @relation(fields: [merchantId], references: [id])
+  algorithm   String        @default("sha256")
+  status      HmacKeyStatus  @default(ACTIVE)
+  rotatedFrom String? // previous key ID if rotated
+  expiresAt   DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([merchantId])
+  @@index([status])
+}
+
+model ApiCertificate {
+  id          String   @id @default(uuid())
+  label       String
+  certType    String // "mTLS", "API", "VPN"
+  subject     String? // CN or subject
+  issuer      String?
+  serialNumber String?
+  publicKey   String
+  privateKey  String? // encrypted at rest
+  fingerprint String?
+  validFrom   DateTime
+  validTo     DateTime
+  status      String   @default("ACTIVE")
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([certType])
+}
+
+model ApiKey {
+  id          String   @id @default(uuid())
+  merchantId  String
+  merchant   Merchant @relation(fields: [merchantId], references: [id])
+  keyId       String   @unique // public identifier
+  keySecret   String // hashed secret
+  label       String?
+  scopes      String[] @default([])
+  status      String   @default("ACTIVE")
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([merchantId])
+  @@index([status])
+}
+
+// ──────────────────────────────────────────────
+// ISO8583 — HOST CONNECTIONS, PACKAGERS, MESSAGE TRACES
+// ──────────────────────────────────────────────
+
+model BankAccountProfile {
+  id                String   @id @default(uuid())
+  bankName          String
+  accountLast4      String
+  encryptedDetails  String   @db.Text
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([bankName])
+  @@index([createdAt])
+}
+
+model HostConnection {
+  id          String                 @id @default(uuid())
+  name        String
+  protocol    HostConnectionProtocol @default(TCP)
+  host        String
+  port        Int
+  timeout     Int                    @default(30000) // ms
+  retries     Int                    @default(3)
+  keepAlive   Boolean                @default(true)
+  status      HostConnectionStatus    @default(DISCONNECTED)
+  config      Json? // packager config, encoding, etc.
+  lastConnectedAt DateTime?
+  lastError   String?
+  metadata    Json?
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  routes      Route[]
+  messageTraces MessageTrace[]
+
+  @@index([status])
+  @@index([host])
+}
+
+model Packager {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  spec        Json // field definitions, lengths, types, encoding
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  messageTraces MessageTrace[]
+}
+
+model MessageTrace {
+  id              String   @id @default(uuid())
+  traceId         String   @unique
+  hostConnectionId String?
+  hostConnection  HostConnection? @relation(fields: [hostConnectionId], references: [id])
+  packagerId      String?
+  packager       Packager? @relation(fields: [packagerId], references: [id])
+  direction       String // "INCOMING", "OUTGOING"
+  mti             String?
+  bitmap          String?
+  fields          Json // parsed ISO8583 fields
+  rawMessage      Bytes?
+  size            Int?
+  duration        Int? // ms
+  status          String   @default("PROCESSED") // PROCESSED, ERROR, TIMEOUT
+  error           String?
+  createdAt       DateTime @default(now())
+
+  @@index([hostConnectionId])
+  @@index([direction])
+  @@index([mti])
+  @@index([createdAt])
+}
+
+// ──────────────────────────────────────────────
+// SWITCH CORE — SETTLEMENT, RECONCILIATION, CHARGEBACKS
+// ──────────────────────────────────────────────
+
+model SettlementBatch {
+  id              String                 @id @default(uuid())
+  batchNumber     String                 @unique
+  merchantId      String
+  merchant       Merchant                @relation(fields: [merchantId], references: [id])
+  currency        String                 @default("USD")
+  status          SettlementBatchStatus   @default(OPEN)
+  period          String // e.g. "2026-10-22"
+  totalAmount     Decimal                @default(0) @db.Decimal(20, 4)
+  totalFees       Decimal                @default(0) @db.Decimal(20, 4)
+  netAmount       Decimal                @default(0) @db.Decimal(20, 4)
+  transactionCount Int                   @default(0)
+  journalEntryRef String?
+  openedAt        DateTime               @default(now())
+  processedAt     DateTime?
+  closedAt        DateTime?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  reconciliations ReconciliationRecord[]
+
+  @@index([merchantId])
+  @@index([status])
+  @@index([period])
+}
+
+model ReconciliationRecord {
+  id              String              @id @default(uuid())
+  settlementBatchId String?
+  settlementBatch SettlementBatch?    @relation(fields: [settlementBatchId], references: [id])
+  source          String // "INTERNAL", "PROCESSOR", "ACQUIRER"
+  reference       String
+  expectedAmount  Decimal             @default(0) @db.Decimal(20, 4)
+  actualAmount    Decimal             @default(0) @db.Decimal(20, 4)
+  difference      Decimal             @default(0) @db.Decimal(20, 4)
+  status          ReconciliationStatus @default(PENDING)
+  notes           String?
+  resolvedBy      String?
+  resolvedAt      DateTime?
+  metadata        Json?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([settlementBatchId])
+  @@index([status])
+}
+
+model Chargeback {
+  id              String          @id @default(uuid())
+  caseNumber      String          @unique
+  transactionId   String
+  transaction    Transaction     @relation(fields: [transactionId], references: [id])
+  amount          Decimal         @db.Decimal(20, 4)
+  currency        String          @default("USD")
+  reasonCode      String? // chargeback reason code
+  reasonDescription String?
+  status          ChargebackStatus @default(OPEN)
+  evidence        Json?
+  journalEntryRef String? // reversal entry
+  filedAt         DateTime        @default(now())
+  respondedAt     DateTime?
+  resolvedAt      DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([transactionId])
+  @@index([status])
+}
+
+// ──────────────────────────────────────────────
+// FRAUD — VELOCITY, BLACKLIST, AML, RISK
+// ──────────────────────────────────────────────
+
+model FraudRule {
+  id          String          @id @default(uuid())
+  name        String
+  type        FraudRuleType
+  status      FraudRuleStatus @default(ACTIVE)
+  condition   Json // rule conditions (amount, velocity, geography, etc.)
+  action      String   @default("BLOCK") // BLOCK, REVIEW, ALERT, ALLOW
+  priority    Int      @default(100)
+  merchantId  String? // null = global
+  metadata    Json?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([type])
+  @@index([status])
+  @@index([merchantId])
+}
+
+model BlacklistEntry {
+  id          String   @id @default(uuid())
+  type        String // "CARD", "IP", "DEVICE", "MERCHANT", "WALLET"
+  value       String // the blacklisted value
+  reason      String?
+  source      String   @default("MANUAL") // MANUAL, AUTOMATED, FEED
+  expiresAt   DateTime?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@unique([type, value])
+  @@index([type])
+}
+
+model WhitelistEntry {
+  id          String   @id @default(uuid())
+  type        String // "CARD", "IP", "DEVICE", "MERCHANT", "WALLET"
+  value       String
+  reason      String?
+  expiresAt   DateTime?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@unique([type, value])
+  @@index([type])
+}
+
+model RiskScore {
+  id              String   @id @default(uuid())
+  entityType      String // "TRANSACTION", "MERCHANT", "WALLET"
+  entityId        String
+  score           Float   // 0.0 to 100.0
+  level           String  // "LOW", "MEDIUM", "HIGH", "CRITICAL"
+  factors         Json // contributing factors
+  recommendation  String  @default("ALLOW") // ALLOW, REVIEW, BLOCK
+  evaluatedAt     DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([level])
+  @@index([createdAt])
+}
+
+// ──────────────────────────────────────────────
+// TREASURY — FLOAT, LIQUIDITY, RESERVES
+// ──────────────────────────────────────────────
+
+model FloatAccount {
+  id          String   @id @default(uuid())
+  name        String
+  accountId   String   @unique
+  account    Account   @relation(fields: [accountId], references: [id])
+  currency    String   @default("USD")
+  balance     Decimal  @default(0) @db.Decimal(20, 4)
+  minBalance  Decimal  @default(0) @db.Decimal(20, 4) // minimum float threshold
+  maxBalance  Decimal? @db.Decimal(20, 4)
+  allocated   Decimal  @default(0) @db.Decimal(20, 4)
+  status      String   @default("ACTIVE")
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([currency])
+  @@index([status])
+}
+
+model LiquidityPool {
+  id            String   @id @default(uuid())
+  name          String
+  currency      String   @default("USD")
+  totalLiquidity Decimal @default(0) @db.Decimal(20, 4)
+  availableLiquidity Decimal @default(0) @db.Decimal(20, 4)
+  reservedLiquidity  Decimal @default(0) @db.Decimal(20, 4)
+  utilizationRate Float  @default(0)
+  status        String   @default("ACTIVE")
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([currency])
+  @@index([status])
+}
+
+model ReserveAccount {
+  id          String   @id @default(uuid())
+  name        String
+  type        String // "SETTLEMENT", "RESERVE", "CONTINGENCY"
+  currency    String   @default("USD")
+  balance     Decimal  @default(0) @db.Decimal(20, 4)
+  minReserve  Decimal  @default(0) @db.Decimal(20, 4)
+  status      String   @default("ACTIVE")
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([type])
+  @@index([status])
+}
+
+// ──────────────────────────────────────────────
+// ADMINISTRATION — USERS, ROLES, AUDIT, KYC
+// ──────────────────────────────────────────────
+
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  username    String   @unique
+  passwordHash String
+  fullName    String
+  role        UserRole  @default(READONLY)
+  preferredLang String @default("en")
+  isActive    Boolean  @default(true)
+  lastLoginAt DateTime?
+  mfaEnabled  Boolean  @default(false)
+  mfaSecret   String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  auditLogs   AuditLog[]
+
+  @@index([role])
+  @@index([isActive])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  user       User?     @relation(fields: [userId], references: [id])
+  merchantId  String?
+  merchant   Merchant? @relation(fields: [merchantId], references: [id])
+  action      String // e.g. "CREATE_TERMINAL", "APPROVE_TRANSFER", "UPDATE_ROUTE"
+  entity      String // entity type affected
+  entityId    String? // entity ID affected
+  before      Json? // state before change
+  after       Json? // state after change
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([merchantId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model KycRecord {
+  id          String     @id @default(uuid())
+  merchantId  String     @unique
+  merchant   Merchant    @relation(fields: [merchantId], references: [id])
+  status      KycStatus   @default(NOT_STARTED)
+  level       String? // TIER1, TIER2, TIER3
+  documents   Json? // uploaded documents metadata
+  reviewNotes String?
+  reviewedBy  String?
+  submittedAt DateTime?
+  reviewedAt  DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([status])
+}
+
+// ──────────────────────────────────────────────
+// PRIMEStack ASSET GATEWAY (PAG)
+// Registry and routing configuration. These records do not themselves post
+// value to the existing financial ledger.
+// ──────────────────────────────────────────────
+
+model AssetRegistry {
+  id        String       @id @default(uuid())
+  code      String       @unique
+  name      String
+  type      PagAssetType
+  precision Int
+  active    Boolean      @default(true)
+  metadata  Json?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  accounts          AssetAccount[]
+  routes            AssetRoute[]
+  sourceRates       ConversionRate[] @relation("ConversionSourceAsset")
+  destinationRates  ConversionRate[] @relation("ConversionDestinationAsset")
+  liquidityPools    AssetLiquidityPool[]
+  ledgerEntries     AssetLedger[]
+  complianceChecks  ComplianceCheck[]
+
+  @@index([type, active])
+}
+
+model NetworkDirectory {
+  id          String   @id @default(uuid())
+  networkName String   @unique
+  networkType String
+  status      String   @default("ACTIVE")
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sourceRoutes      AssetRoute[]   @relation("AssetRouteSource")
+  destinationRoutes AssetRoute[]   @relation("AssetRouteDestination")
+  liquidityPools    AssetLiquidityPool[]
+
+  @@index([status])
+  @@index([networkType])
+}
+
+model AssetAccount {
+  id            String        @id @default(uuid())
+  accountNumber String        @unique
+  assetId       String
+  asset         AssetRegistry @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  ownerId       String
+  ownerType     String
+  createdAt     DateTime      @default(now())
+
+  debitEntries  AssetLedger[] @relation("AssetLedgerDebitAccount")
+  creditEntries AssetLedger[] @relation("AssetLedgerCreditAccount")
+
+  @@index([assetId, ownerType, ownerId])
+}
+
+model AssetLedger {
+  id              String        @id @default(uuid())
+  assetId         String
+  asset           AssetRegistry @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  debitAccountId  String
+  debitAccount    AssetAccount  @relation("AssetLedgerDebitAccount", fields: [debitAccountId], references: [id], onDelete: Restrict)
+  creditAccountId String
+  creditAccount   AssetAccount  @relation("AssetLedgerCreditAccount", fields: [creditAccountId], references: [id], onDelete: Restrict)
+  amount          Decimal       @db.Decimal(30, 8)
+  reference       String        @unique
+  createdAt       DateTime      @default(now())
+
+  @@index([assetId, createdAt])
+  @@index([debitAccountId, createdAt])
+  @@index([creditAccountId, createdAt])
+}
+
+model AssetRoute {
+  id                    String          @id @default(uuid())
+  sourceNetworkId       String
+  sourceNetwork         NetworkDirectory @relation("AssetRouteSource", fields: [sourceNetworkId], references: [id], onDelete: Restrict)
+  destinationNetworkId  String
+  destinationNetwork    NetworkDirectory @relation("AssetRouteDestination", fields: [destinationNetworkId], references: [id], onDelete: Restrict)
+  assetId               String
+  asset                 AssetRegistry   @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  priority              Int             @default(1)
+  costPercent           Decimal         @default(0) @db.Decimal(8, 4)
+  estimatedLatencyMs    Int             @default(0)
+  availabilityScore     Int             @default(100)
+  riskScore             Int             @default(0)
+  active                Boolean         @default(true)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  @@unique([sourceNetworkId, destinationNetworkId, assetId])
+  @@index([sourceNetworkId, assetId, active])
+  @@index([destinationNetworkId, assetId, active])
+  @@index([priority])
+}
+
+model ConversionRate {
+  id                String        @id @default(uuid())
+  sourceAssetId     String
+  sourceAsset       AssetRegistry @relation("ConversionSourceAsset", fields: [sourceAssetId], references: [id], onDelete: Restrict)
+  destinationAssetId String
+  destinationAsset  AssetRegistry @relation("ConversionDestinationAsset", fields: [destinationAssetId], references: [id], onDelete: Restrict)
+  rate              Decimal       @db.Decimal(20, 8)
+  active            Boolean       @default(true)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@unique([sourceAssetId, destinationAssetId])
+  @@index([active, updatedAt])
+}
+
+model AssetLiquidityPool {
+  id                String          @id @default(uuid())
+  assetId           String
+  asset             AssetRegistry   @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  networkId         String
+  network           NetworkDirectory @relation(fields: [networkId], references: [id], onDelete: Restrict)
+  availableBalance  Decimal         @default(0) @db.Decimal(30, 8)
+  reservedBalance   Decimal         @default(0) @db.Decimal(30, 8)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@unique([assetId, networkId])
+  @@index([networkId, assetId])
+}
+
+model ComplianceCheck {
+  id          String         @id @default(uuid())
+  reference   String
+  assetId     String?
+  asset       AssetRegistry? @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  result      String         @default("PENDING_REVIEW")
+  checkedAt   DateTime       @default(now())
+  reviewedBy  String?
+  details     Json?
+
+  @@index([reference, checkedAt])
+  @@index([result, checkedAt])
+}
+
+enum DeveloperApplicationType {
+  MERCHANT_APP
+  TERMINAL_APP
+  WALLET_APP
+  TREASURY_APP
+  PARTNER_APP
+}
+
+model DeveloperApplication {
+  id             String                            @id @default(uuid())
+  appName        String
+  ownerId        String
+  appType        DeveloperApplicationType
+  status         String                            @default("PENDING")
+  ratePlanId     String?
+  ratePlan       DeveloperApiRatePlan?             @relation(fields: [ratePlanId], references: [id], onDelete: SetNull)
+  keys           DeveloperApplicationKey[]
+  products       DeveloperApplicationProduct[]
+  webhooks       DeveloperWebhook[]
+  certifications DeveloperCertification[]
+  createdAt      DateTime                          @default(now())
+  updatedAt      DateTime                          @updatedAt
+
+  @@index([ownerId])
+  @@index([status, createdAt])
+  @@index([ratePlanId])
+}
+
+model DeveloperApplicationKey {
+  id            String               @id @default(uuid())
+  applicationId String
+  application   DeveloperApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  keyId         String               @unique
+  secretHash    String
+  secretLast4   String
+  active        Boolean              @default(true)
+  lastUsedAt    DateTime?
+  createdAt     DateTime             @default(now())
+  revokedAt     DateTime?
+
+  @@index([applicationId, active])
+}
+
+model DeveloperApiProduct {
+  id          String                        @id @default(uuid())
+  productName String                        @unique
+  description String?
+  active      Boolean                       @default(true)
+  applications DeveloperApplicationProduct[]
+  createdAt   DateTime                      @default(now())
+  updatedAt   DateTime                      @updatedAt
+}
+
+model DeveloperApplicationProduct {
+  applicationId String
+  application   DeveloperApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  productId     String
+  product       DeveloperApiProduct  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt     DateTime             @default(now())
+
+  @@id([applicationId, productId])
+  @@index([productId])
+}
+
+model DeveloperApiRatePlan {
+  id                 String                  @id @default(uuid())
+  planName           String                  @unique
+  requestsPerMinute  Int?
+  dailyLimit         Int?
+  applications       DeveloperApplication[]
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+}
+
+model DeveloperWebhook {
+  id            String               @id @default(uuid())
+  applicationId String
+  application   DeveloperApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  eventName     String
+  callbackUrl   String
+  active        Boolean              @default(true)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  @@index([applicationId, active])
+  @@index([eventName, active])
+}
+
+model DeveloperSdkVersion {
+  id        String   @id @default(uuid())
+  sdkName   String
+  language  String
+  version   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sdkName, language, version])
+  @@index([language])
+}
+
+model DeveloperPartner {
+  id          String   @id @default(uuid())
+  partnerName String
+  partnerType String
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([partnerName, partnerType])
+  @@index([active])
+}
+
+model DeveloperCertification {
+  id                String               @id @default(uuid())
+  applicationId     String
+  application       DeveloperApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  certificationType String
+  status            String               @default("PENDING")
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  @@index([applicationId, status])
+}
+
+model EnterpriseRisk {
+  id          String   @id @default(uuid())
+  riskCategory String
+  impact      String
+  likelihood  String
+  description String
+  mitigation  String
+  status      String   @default("OPEN")
+  ownerId     String?
+  createdBy   String?
+  updatedBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([riskCategory, status])
+  @@index([createdAt])
+}
+
+model DisasterRecoveryPlan {
+  id           String   @id @default(uuid())
+  serviceName  String   @unique
+  rtoMinutes   Int
+  rpoMinutes   Int
+  planReference String?
+  status       String   @default("DRAFT")
+  createdBy    String?
+  updatedBy    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([status])
+}
+
+model GovernanceBackupRecord {
+  id                String   @id @default(uuid())
+  backupType        String
+  backupDate        DateTime
+  status            String
+  locationReference String?
+  notes             String?
+  recordedBy        String?
+  updatedBy         String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([backupDate])
+  @@index([status, backupDate])
+}
+
+model GovernanceKeyRecord {
+  id          String    @id @default(uuid())
+  keyVersion  Int
+  purpose     String
+  status      String    @default("GENERATED")
+  createdBy   String?
+  updatedBy   String?
+  activatedAt DateTime?
+  retiredAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([purpose, status])
+}
+
+model DataRetentionPolicy {
+  id            String   @id @default(uuid())
+  policyName    String   @unique
+  retentionDays Int
+  dataCategory  String
+  description   String?
+  active        Boolean  @default(true)
+  createdBy     String?
+  updatedBy     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([active, dataCategory])
+}
+
+model GovernanceChangeRequest {
+  id             String   @id @default(uuid())
+  title          String
+  description    String
+  riskLevel      String
+  approvalStatus String   @default("REQUESTED")
+  requestedBy    String
+  reviewedBy     String?
+  approvedBy     String?
+  implementedBy  String?
+  verifiedBy     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([approvalStatus, createdAt])
+  @@index([riskLevel])
+}
+
+model RegulatoryReportRecord {
+  id               String   @id @default(uuid())
+  reportType       String
+  reportingPeriod  DateTime
+  generatedAt      DateTime?
+  status           String   @default("PLANNED")
+  artifactReference String?
+  createdBy        String?
+  updatedBy        String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([reportType, reportingPeriod])
+  @@index([status, generatedAt])
+}
+
+model GovernanceVendor {
+  id          String   @id @default(uuid())
+  vendorName  String
+  criticality String
+  riskRating  String
+  status      String   @default("ACTIVE")
+  notes       String?
+  createdBy   String?
+  updatedBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([vendorName])
+  @@index([criticality, riskRating])
+  @@index([status])
+}
+
+model ContinuityTestRecord {
+  id          String   @id @default(uuid())
+  scenario    String
+  testDate    DateTime
+  result      String
+  notes       String?
+  conductedBy String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([testDate])
+  @@index([result, testDate])
+}
+
+// ──────────────────────────────────────────────
+// NOTIFICATIONS
+// ──────────────────────────────────────────────
+
+model Notification {
+  id          String             @id @default(uuid())
+  merchantId  String?
+  merchant   Merchant?           @relation(fields: [merchantId], references: [id])
+  type        NotificationType
+  channel     NotificationChannel
+  title       String
+  message     String
+  language    String              @default("en") // language used for this notification
+  status      String              @default("PENDING") // PENDING, SENT, DELIVERED, FAILED
+  recipient   String // email, phone, webhook URL, user ID
+  metadata    Json?
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  error       String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([merchantId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model NotificationTemplate {
+  id          String   @id @default(uuid())
+  code        String   @unique // e.g. "TRANSFER_COMPLETED", "TERMINAL_OFFLINE"
+  type        NotificationType
+  channel     NotificationChannel
+  language    String   @default("en")
+  subject     String?
+  body        String // template with {{variables}}
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([code, channel, language])
+  @@index([code])
+}
+
+model IntelligenceEvent {
+  id              String   @id @default(uuid())
+  eventType       String   @db.VarChar(100)
+  sourceSystem    String   @db.VarChar(100)
+  confidenceScore Decimal  @db.Decimal(5, 2)
+  summary         String   @db.VarChar(1000)
+  createdBy       String
+  createdAt       DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([eventType, createdAt])
+  @@index([sourceSystem, createdAt])
+  @@index([createdBy, createdAt])
+}
+
+
+// ──────────────────────────────────────────────
+// S2S ENGINE — Server-to-Server Payment Engine
+// ──────────────────────────────────────────────
+
+enum S2sConnectionStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  TESTING
+}
+
+enum S2sPaymentStatus {
+  PENDING
+  PROCESSING
+  AUTHENTICATED
+  COMPLETED
+  FAILED
+  REVERSED
+  EXPIRED
+}
+
+enum S2sBankWithdrawalStatus {
+  PENDING
+  SUBMITTED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+/// An external server endpoint that this switch can receive funds from.
+/// Customers register their server URL, provide an HMAC secret,
+/// and optionally define their ledger wallet destination.
+model S2sConnection {
+  id                 String                @id @default(uuid())
+  name               String                // human-readable label
+  merchantId         String
+  merchant           Merchant              @relation("S2sMerchantConnections", fields: [merchantId], references: [id])
+  endpointUrl        String                // remote server base URL to call for fund pulls
+  apiSecret          String                @db.Text // encrypted HMAC secret provided by the customer
+  apiKeyHeader       String                @default("x-api-key") // header name for the secret
+  callbackUrl        String?               // URL we POST receipts to after processing
+  status             S2sConnectionStatus   @default(ACTIVE)
+  allowedIps         String[]              // IP allowlist for incoming requests from this server
+  supportedCurrencies String[]             // e.g. ["USD","EUR","GBP"]
+  dailyLimitAmount   Decimal?              @db.Decimal(20, 4)
+  singleTxLimitAmount Decimal?             @db.Decimal(20, 4)
+  receiptTemplateId  String?               // default receipt template
+  receiptTemplate    S2sReceiptTemplate?   @relation(fields: [receiptTemplateId], references: [id])
+  metadata           Json?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  payments           S2sPayment[]
+  withdrawals        S2sBankWithdrawal[]
+
+  @@index([merchantId])
+  @@index([status])
+}
+
+/// A single fund-receive event from an external server.
+/// Each payment posts a double-entry journal entry and is linked to
+/// the receiving merchant's wallet.
+model S2sPayment {
+  id                 String           @id @default(uuid())
+  reference          String           @unique
+  connectionId       String
+  connection         S2sConnection    @relation(fields: [connectionId], references: [id])
+  merchantId         String
+  amount             Decimal          @db.Decimal(20, 4)
+  currency           String           @default("USD")
+  feeAmount          Decimal          @default(0) @db.Decimal(20, 4)
+  netAmount          Decimal          @default(0) @db.Decimal(20, 4)
+  senderReference    String?          // reference from the remote server
+  senderAccountId    String?          // identifier on the remote server
+  receiverWalletAddr String           // destination wallet address in this switch
+  journalEntryRef    String?          // linked journal entry reference
+  receiptTemplateId  String?
+  receiptTemplate    S2sReceiptTemplate? @relation(fields: [receiptTemplateId], references: [id])
+  receiptData        Json?            // rendered receipt key-value pairs
+  status             S2sPaymentStatus @default(PENDING)
+  authenticatedAt    DateTime?
+  completedAt        DateTime?
+  failureReason      String?
+  metadata           Json?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  withdrawals        S2sBankWithdrawal[]
+
+  @@index([connectionId])
+  @@index([merchantId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([senderReference])
+}
+
+/// A bank withdrawal instruction — moves settled funds from the merchant's
+/// internal wallet to an external bank account (SWIFT, ACH, SEPA).
+model S2sBankWithdrawal {
+  id                 String                    @id @default(uuid())
+  reference          String                    @unique
+  connectionId       String
+  connection         S2sConnection             @relation(fields: [connectionId], references: [id])
+  merchantId         String
+  paymentId          String?                   // optional — withdrawal from a specific payment
+  payment            S2sPayment?               @relation(fields: [paymentId], references: [id])
+  walletAddress      String                    // source wallet to debit
+  amount             Decimal                   @db.Decimal(20, 4)
+  currency           String                    @default("USD")
+  feeAmount          Decimal                   @default(0) @db.Decimal(20, 4)
+  netAmount          Decimal                   @default(0) @db.Decimal(20, 4)
+  // Bank destination details (stored encrypted in production; plain for dev)
+  bankName           String
+  bankCountry        String
+  accountHolderName  String
+  iban               String?
+  swiftBic           String?
+  accountNumber      String?
+  routingNumber      String?
+  bankAddress        String?
+  journalEntryRef    String?
+  status             S2sBankWithdrawalStatus   @default(PENDING)
+  submittedAt        DateTime?
+  completedAt        DateTime?
+  failureReason      String?
+  metadata           Json?
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  @@index([connectionId])
+  @@index([merchantId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+/// A JSON-driven receipt template. Customers upload a JSON schema that
+/// defines which fields must appear on receipts for this connection.
+/// The engine renders incoming payment data against this template.
+model S2sReceiptTemplate {
+  id           String   @id @default(uuid())
+  name         String
+  merchantId   String
+  description  String?
+  // JSON schema defining receipt fields: { fields: [{ key, label, source, required, format }] }
+  templateJson Json
+  isDefault    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  connections  S2sConnection[]
+  payments     S2sPayment[]
+
+  @@unique([merchantId, name])
+  @@index([merchantId])
+}

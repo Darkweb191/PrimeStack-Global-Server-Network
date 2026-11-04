@@ -1,0 +1,74 @@
+{
+  "app": {
+    "name": "PrimeStack Switch",
+    "tagline": "Comutador de Pagamentos e Gateway de Ativos"
+  },
+  "status": {
+    "active": "Ativo",
+    "inactive": "Inativo",
+    "pending": "Pendente",
+    "suspended": "Suspenso",
+    "completed": "Concluído",
+    "failed": "Falhou",
+    "processing": "Processando",
+    "online": "Online",
+    "offline": "Offline",
+    "degraded": "Degradado",
+    "maintenance": "Manutenção"
+  },
+  "account": {
+    "type": {
+      "ASSET": "Ativo",
+      "LIABILITY": "Passivo",
+      "EQUITY": "Patrimônio",
+      "REVENUE": "Receita",
+      "EXPENSE": "Despesa"
+    },
+    "status": {
+      "ACTIVE": "Ativo",
+      "FROZEN": "Congelado",
+      "CLOSED": "Fechado"
+    }
+  },
+  "transfer": {
+    "type": {
+      "T2T": "Terminal para Terminal",
+      "S2S": "Servidor para Servidor",
+      "IP2IP": "IP para IP",
+      "WALLET": "Transferência de Carteira",
+      "MERCHANT": "Transferência de Comerciante",
+      "BULK": "Transferência em Massa"
+    },
+    "status": {
+      "INITIATED": "Iniciada",
+      "PENDING": "Pendente",
+      "PROCESSING": "Processando",
+      "COMPLETED": "Concluída",
+      "FAILED": "Falhou",
+      "REVERSED": "Revertida",
+      "PARTIAL": "Parcial"
+    }
+  },
+  "wallet": {
+    "type": {
+      "USER": "Carteira de Usuário",
+      "MERCHANT": "Carteira de Comerciante",
+      "ESCROW": "Carteira de Custódia",
+      "PAYOUT": "Carteira de Pagamento"
+    }
+  },
+  "actions": {
+    "create": "Criar",
+    "update": "Atualizar",
+    "delete": "Excluir",
+    "approve": "Aprovar",
+    "reject": "Rejeitar",
+    "cancel": "Cancelar",
+    "submit": "Enviar",
+    "search": "Buscar",
+    "export": "Exportar",
+    "import": "Importar",
+    "refresh": "Atualizar",
+    "configure": "Configurar"
+  }
+}

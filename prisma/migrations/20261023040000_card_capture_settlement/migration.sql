@@ -1,0 +1,2 @@
+ALTER TABLE "SettlementBatch"
+ADD COLUMN "currency" TEXT NOT NULL DEFAULT 'USD';

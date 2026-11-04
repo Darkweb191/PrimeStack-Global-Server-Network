@@ -1,0 +1,74 @@
+{
+  "app": {
+    "name": "PrimeStack Switch",
+    "tagline": "Conmutador de Pago y Puerta de Enlace de Activos"
+  },
+  "status": {
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "pending": "Pendiente",
+    "suspended": "Suspendido",
+    "completed": "Completado",
+    "failed": "Fallido",
+    "processing": "Procesando",
+    "online": "En línea",
+    "offline": "Desconectado",
+    "degraded": "Degradado",
+    "maintenance": "Mantenimiento"
+  },
+  "account": {
+    "type": {
+      "ASSET": "Activo",
+      "LIABILITY": "Pasivo",
+      "EQUITY": "Capital",
+      "REVENUE": "Ingreso",
+      "EXPENSE": "Gasto"
+    },
+    "status": {
+      "ACTIVE": "Activo",
+      "FROZEN": "Congelado",
+      "CLOSED": "Cerrado"
+    }
+  },
+  "transfer": {
+    "type": {
+      "T2T": "Terminal a Terminal",
+      "S2S": "Servidor a Servidor",
+      "IP2IP": "IP a IP",
+      "WALLET": "Transferencia de Billetera",
+      "MERCHANT": "Transferencia de Comerciante",
+      "BULK": "Transferencia Masiva"
+    },
+    "status": {
+      "INITIATED": "Iniciado",
+      "PENDING": "Pendiente",
+      "PROCESSING": "Procesando",
+      "COMPLETED": "Completado",
+      "FAILED": "Fallido",
+      "REVERSED": "Revertido",
+      "PARTIAL": "Parcial"
+    }
+  },
+  "wallet": {
+    "type": {
+      "USER": "Billetera de Usuario",
+      "MERCHANT": "Billetera de Comerciante",
+      "ESCROW": "Billetera de Custodia",
+      "PAYOUT": "Billetera de Pago"
+    }
+  },
+  "actions": {
+    "create": "Crear",
+    "update": "Actualizar",
+    "delete": "Eliminar",
+    "approve": "Aprobar",
+    "reject": "Rechazar",
+    "cancel": "Cancelar",
+    "submit": "Enviar",
+    "search": "Buscar",
+    "export": "Exportar",
+    "import": "Importar",
+    "refresh": "Actualizar",
+    "configure": "Configurar"
+  }
+}

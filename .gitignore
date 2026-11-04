@@ -1,0 +1,65 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Prisma
+prisma/migrations/dev.db*
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test
+coverage/
+
+# Pino logs
+pino-*.log
+
+# Render / deployment
+.env.production
+
+# Large generated files
+npm-install.log
+server-out.txt
+server-err.txt
+runtime-loader.cjs
+node_modules.incomplete-20261023/
+node_modules.partial-20261023/
+node_modules.partial-recovery-20261023/
+.primestack-deps/
+.primestack-deps-restore/
+.primestack-deps-final/
+.primestack-deps-copy/
+.primestack-deps-fast/
+.node_modules-restored/
+
+# PDF files with sensitive bank details
+*.pdf
+
+# Temp files
+.tmp-*
+*.mts
+*.cjs.map
+
+# Large test/generated files
+NEW\ IMPLEMENTS/
+netlify-deploy/
+mobile-app/
+.trae-html-share-packages/

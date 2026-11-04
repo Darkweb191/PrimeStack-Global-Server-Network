@@ -1,0 +1,74 @@
+{
+  "app": {
+    "name": "PrimeStack Switch",
+    "tagline": "مبدّل المدفوعات وبوابة الأصول"
+  },
+  "status": {
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "pending": "قيد الانتظار",
+    "suspended": "معلّق",
+    "completed": "مكتمل",
+    "failed": "فشل",
+    "processing": "قيد المعالجة",
+    "online": "متصل",
+    "offline": "غير متصل",
+    "degraded": "متدهور",
+    "maintenance": "صيانة"
+  },
+  "account": {
+    "type": {
+      "ASSET": "أصل",
+      "LIABILITY": "خصم",
+      "EQUITY": "حقوق الملكية",
+      "REVENUE": "إيراد",
+      "EXPENSE": "مصروف"
+    },
+    "status": {
+      "ACTIVE": "نشط",
+      "FROZEN": "مجمّد",
+      "CLOSED": "مغلق"
+    }
+  },
+  "transfer": {
+    "type": {
+      "T2T": "من طرفية إلى طرفية",
+      "S2S": "من خادم إلى خادم",
+      "IP2IP": "من IP إلى IP",
+      "WALLET": "تحويل المحفظة",
+      "MERCHANT": "تحويل التاجر",
+      "BULK": "تحويل جماعي"
+    },
+    "status": {
+      "INITIATED": "تم البدء",
+      "PENDING": "قيد الانتظار",
+      "PROCESSING": "قيد المعالجة",
+      "COMPLETED": "مكتمل",
+      "FAILED": "فشل",
+      "REVERSED": "معكوس",
+      "PARTIAL": "جزئي"
+    }
+  },
+  "wallet": {
+    "type": {
+      "USER": "محفظة المستخدم",
+      "MERCHANT": "محفظة التاجر",
+      "ESCROW": "محفظة الضمان",
+      "PAYOUT": "محفظة الدفع"
+    }
+  },
+  "actions": {
+    "create": "إنشاء",
+    "update": "تحديث",
+    "delete": "حذف",
+    "approve": "موافقة",
+    "reject": "رفض",
+    "cancel": "إلغاء",
+    "submit": "إرسال",
+    "search": "بحث",
+    "export": "تصدير",
+    "import": "استيراد",
+    "refresh": "تحديث",
+    "configure": "تكوين"
+  }
+}

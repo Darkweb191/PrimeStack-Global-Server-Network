@@ -1,0 +1,96 @@
+databases:
+  - name: primestack-postgres
+    databaseName: primestack
+    user: primestack
+    plan: free
+    region: oregon
+
+  - name: primestack-redis
+    type: redis
+    plan: free
+    region: oregon
+    ipAllowList: []
+
+services:
+  - type: web
+    name: primestack-api
+    runtime: node
+    region: oregon
+    plan: free
+    branch: main
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npm run start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 8081
+      - key: HOST
+        value: 0.0.0.0
+      - key: LOG_LEVEL
+        value: info
+      - key: APP_NAME
+        value: primestack-global-payment-network
+      - key: DATABASE_URL
+        fromDatabase:
+          name: primestack-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: primestack-redis
+          type: redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 24h
+      - key: HMAC_ALGORITHM
+        value: sha256
+      - key: HMAC_HEADER_PREFIX
+        value: x-primestack
+      - key: RATE_LIMIT_MAX
+        value: 1000
+      - key: RATE_LIMIT_WINDOW
+        value: 60
+      - key: DEFAULT_LANGUAGE
+        value: en
+      - key: SUPPORTED_LANGUAGES
+        value: en,fr,es,ar,pt
+      - key: S2S_SECRET_KEY
+        generateValue: true
+      - key: BANK_DETAILS_ENCRYPTION_KEY
+        generateValue: true
+      - key: BANK_IN2_ACCOUNT_HOLDER
+        value: M/S.UNITED SOLAR AND WIND POWER TECHNOLOGIES
+      - key: BANK_IN2_BANK_NAME
+        value: ICICI Bank
+      - key: BANK_IN2_CURRENCY
+        value: INR
+      - key: BANK_IN2_COUNTRY
+        value: IN
+      - key: BANK_IN2_GATEWAY
+        value: ICICI_EAZYPAY
+      - key: BANK_IN2_SWIFT_BIC
+        value: ICICINBBCTS
+
+  - type: web
+    name: primestack-dashboard
+    runtime: node
+    region: oregon
+    plan: free
+    branch: main
+    buildCommand: npm install
+    startCommand: node start-dashboard.js
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: NODE_ENV
+        value: production
+
+  - type: static
+    name: primestack-website
+    branch: main
+    staticPublishPath: ./docs
+    buildCommand: echo done
+    pullRequestPreviewsEnabled: false

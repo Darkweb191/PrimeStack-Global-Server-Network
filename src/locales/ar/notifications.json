@@ -1,0 +1,38 @@
+{
+  "TRANSFER_COMPLETED": {
+    "subject": "تم إكمال التحويل",
+    "body": "تم إكمال تحويل {{type}} بقيمة {{amount}} {{currency}} بنجاح. المرجع: {{reference}}"
+  },
+  "TRANSFER_FAILED": {
+    "subject": "فشل التحويل",
+    "body": "فشل تحويل {{type}} بقيمة {{amount}} {{currency}}. السبب: {{reason}}. المرجع: {{reference}}"
+  },
+  "TRANSFER_INITIATED": {
+    "subject": "تم بدء التحويل",
+    "body": "تم بدء تحويل {{type}} بقيمة {{amount}} {{currency}}. المرجع: {{reference}}"
+  },
+  "TERMINAL_OFFLINE": {
+    "subject": "الطرفية غير متصلة",
+    "body": "الطرفية {{tid}} ({{serialNumber}}) أصبحت غير متصلة. آخر ظهور: {{lastSeen}}"
+  },
+  "SETTLEMENT_COMPLETED": {
+    "subject": "تم إكمال التسوية",
+    "body": "تم إكمال دفعة التسوية {{batchNumber}}. الإجمالي: {{totalAmount}} {{currency}}، المعاملات: {{transactionCount}}"
+  },
+  "FRAUD_ALERT": {
+    "subject": "تنبيه احتيال",
+    "body": "تم تفعيل تنبيه احتيال لـ {{entityType}} {{entityId}}. مستوى المخاطر: {{level}}"
+  },
+  "KYC_APPROVED": {
+    "subject": "تمت الموافقة على KYC",
+    "body": "تمت الموافقة على التحقق من KYC الخاص بك. يمكنك الآن الوصول إلى جميع ميزات المنصة."
+  },
+  "KYC_REJECTED": {
+    "subject": "تم رفض KYC",
+    "body": "تم رفض التحقق من KYC الخاص بك. السبب: {{reason}}. يرجى الاتصال بالدعم."
+  },
+  "LOW_BALANCE": {
+    "subject": "تنبيه رصيد منخفض",
+    "body": "رصيد الحساب {{accountCode}} ({{balance}} {{currency}}) أقل من الحد الأدنى ({{minBalance}} {{currency}})."
+  }
+}

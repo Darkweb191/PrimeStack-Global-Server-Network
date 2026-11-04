@@ -1,0 +1,74 @@
+{
+  "app": {
+    "name": "PrimeStack Switch",
+    "tagline": "Commutateur de Paiement & Passerelle d'Actifs"
+  },
+  "status": {
+    "active": "Actif",
+    "inactive": "Inactif",
+    "pending": "En attente",
+    "suspended": "Suspendu",
+    "completed": "Terminé",
+    "failed": "Échoué",
+    "processing": "En cours",
+    "online": "En ligne",
+    "offline": "Hors ligne",
+    "degraded": "Dégradé",
+    "maintenance": "Maintenance"
+  },
+  "account": {
+    "type": {
+      "ASSET": "Actif",
+      "LIABILITY": "Passif",
+      "EQUITY": "Capitaux propres",
+      "REVENUE": "Revenu",
+      "EXPENSE": "Dépense"
+    },
+    "status": {
+      "ACTIVE": "Actif",
+      "FROZEN": "Gelé",
+      "CLOSED": "Fermé"
+    }
+  },
+  "transfer": {
+    "type": {
+      "T2T": "Terminal à Terminal",
+      "S2S": "Serveur à Serveur",
+      "IP2IP": "IP à IP",
+      "WALLET": "Transfert de Portefeuille",
+      "MERCHANT": "Transfert Marchand",
+      "BULK": "Transfert en Masse"
+    },
+    "status": {
+      "INITIATED": "Initié",
+      "PENDING": "En attente",
+      "PROCESSING": "En cours",
+      "COMPLETED": "Terminé",
+      "FAILED": "Échoué",
+      "REVERSED": "Inversé",
+      "PARTIAL": "Partiel"
+    }
+  },
+  "wallet": {
+    "type": {
+      "USER": "Portefeuille Utilisateur",
+      "MERCHANT": "Portefeuille Marchand",
+      "ESCROW": "Portefeuille de Séquestre",
+      "PAYOUT": "Portefeuille de Paiement"
+    }
+  },
+  "actions": {
+    "create": "Créer",
+    "update": "Mettre à jour",
+    "delete": "Supprimer",
+    "approve": "Approuver",
+    "reject": "Rejeter",
+    "cancel": "Annuler",
+    "submit": "Soumettre",
+    "search": "Rechercher",
+    "export": "Exporter",
+    "import": "Importer",
+    "refresh": "Rafraîchir",
+    "configure": "Configurer"
+  }
+}

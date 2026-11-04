@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PrimeStack Asset Gateway — Usage Guide</title>
+<style>
+  :root {
+    --bg: #0d0f17;
+    --surface: #141824;
+    --surface2: #1c2133;
+    --border: #2a3147;
+    --accent: #4f8ef7;
+    --accent-dim: #1e3a6e;
+    --green: #22c55e;
+    --yellow: #f59e0b;
+    --red: #ef4444;
+    --purple: #a855f7;
+    --cyan: #06b6d4;
+    --text: #e2e8f0;
+    --text-muted: #8892a4;
+    --text-dim: #5a6478;
+    --radius: 8px;
+    --radius-sm: 4px;
+    --font-mono: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    --nav-h: 56px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(13,15,23,0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    height: var(--nav-h);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  nav::-webkit-scrollbar { display: none; }
+  .nav-brand {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--accent);
+    white-space: nowrap;
+    margin-right: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .nav-brand svg { width: 22px; height: 22px; }
+  nav a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    padding: 5px 10px;
+    border-radius: var(--radius-sm);
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+  }
+  nav a:hover { background: var(--surface2); color: var(--text); }
+  nav a.active { background: var(--accent-dim); color: var(--accent); }
+
+  /* ── LAYOUT ── */
+  .page-wrapper { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* ── HERO ── */
+  .hero {
+    background: linear-gradient(135deg, #0d1627 0%, #141824 60%, #0d1627 100%);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 48px 40px;
+    margin-bottom: 48px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 280px; height: 280px;
+    background: radial-gradient(circle, rgba(79,142,247,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero h1 { font-size: 32px; font-weight: 800; color: #fff; line-height: 1.2; }
+  .hero h1 span { color: var(--accent); }
+  .hero p { color: var(--text-muted); margin-top: 12px; font-size: 16px; max-width: 640px; }
+  .hero-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    border: 1px solid;
+  }
+  .badge-blue { background: rgba(79,142,247,0.12); border-color: rgba(79,142,247,0.3); color: var(--accent); }
+  .badge-green { background: rgba(34,197,94,0.12); border-color: rgba(34,197,94,0.3); color: var(--green); }
+  .badge-yellow { background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.3); color: var(--yellow); }
+  .badge-purple { background: rgba(168,85,247,0.12); border-color: rgba(168,85,247,0.3); color: var(--purple); }
+  .badge-cyan { background: rgba(6,182,212,0.12); border-color: rgba(6,182,212,0.3); color: var(--cyan); }
+  .badge-red { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.3); color: var(--red); }
+
+  /* ── SECTIONS ── */
+  section { margin-bottom: 56px; scroll-margin-top: calc(var(--nav-h) + 20px); }
+  .section-header {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 24px; padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-num {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--accent-dim);
+    color: var(--accent);
+    font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .section-header h2 { font-size: 22px; font-weight: 700; color: #fff; }
+  .section-header h2 small { font-size: 13px; font-weight: 400; color: var(--text-muted); margin-left: 10px; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .card h3 { font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 8px; }
+  .card p { color: var(--text-muted); font-size: 14px; }
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+
+  /* ── CODE ── */
+  .code-block {
+    background: #0a0c14;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin: 16px 0;
+  }
+  .code-block-header {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 12px; color: var(--text-muted);
+  }
+  .code-block-header .lang { color: var(--accent); font-weight: 600; }
+  .copy-btn {
+    background: none; border: 1px solid var(--border);
+    color: var(--text-muted); padding: 2px 10px;
+    border-radius: var(--radius-sm); font-size: 11px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+  pre {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.65;
+    padding: 18px 20px;
+    overflow-x: auto;
+    color: var(--text);
+  }
+  .kw { color: #c792ea; }
+  .str { color: #c3e88d; }
+  .num { color: #f78c6c; }
+  .cmt { color: #546e7a; font-style: italic; }
+  .fn { color: #82aaff; }
+  .prop { color: var(--accent); }
+  .type { color: var(--cyan); }
+  .op { color: #89ddff; }
+  .hdr { color: var(--yellow); }
+  .url { color: var(--green); }
+  .method-get { color: var(--green); font-weight: 700; }
+  .method-post { color: var(--accent); font-weight: 700; }
+  .method-put { color: var(--yellow); font-weight: 700; }
+  .method-delete { color: var(--red); font-weight: 700; }
+  .method-patch { color: var(--purple); font-weight: 700; }
+
+  /* ── TABLES ── */
+  .table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { background: var(--surface2); }
+  th { padding: 10px 14px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+  td { padding: 10px 14px; border-bottom: 1px solid rgba(42,49,71,0.5); color: var(--text); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  td code, th code { font-family: var(--font-mono); font-size: 12px; background: var(--surface2); padding: 2px 6px; border-radius: 3px; color: var(--cyan); }
+  td .method-get, td .method-post, td .method-put, td .method-delete, td .method-patch { font-family: var(--font-mono); font-size: 11px; }
+
+  /* ── CALLOUTS ── */
+  .callout {
+    display: flex; gap: 12px;
+    padding: 14px 16px;
+    border-radius: var(--radius);
+    border: 1px solid;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .callout-content strong { display: block; margin-bottom: 4px; font-size: 13px; }
+  .callout-info { background: rgba(79,142,247,0.08); border-color: rgba(79,142,247,0.25); color: var(--text-muted); }
+  .callout-info strong { color: var(--accent); }
+  .callout-warn { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.25); color: var(--text-muted); }
+  .callout-warn strong { color: var(--yellow); }
+  .callout-danger { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.25); color: var(--text-muted); }
+  .callout-danger strong { color: var(--red); }
+  .callout-success { background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.25); color: var(--text-muted); }
+  .callout-success strong { color: var(--green); }
+
+  /* ── STEP LIST ── */
+  .steps { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+  .steps li {
+    display: flex; gap: 14px; align-items: flex-start;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .step-num {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 1px;
+  }
+  .steps li div { flex: 1; }
+  .steps li strong { color: #fff; display: block; margin-bottom: 4px; }
+  .steps li p { color: var(--text-muted); font-size: 13px; margin: 0; }
+
+  /* ── INLINE CODE ── */
+  p code, li code, td code { font-family: var(--font-mono); font-size: 12px; background: var(--surface2); padding: 2px 6px; border-radius: 3px; color: var(--cyan); border: 1px solid var(--border); }
+
+  /* ── HR ── */
+  hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+  /* ── TOC ── */
+  .toc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+  .toc-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    text-decoration: none;
+    color: var(--text-muted);
+    font-size: 13px;
+    display: flex; align-items: center; gap: 10px;
+    transition: all 0.15s;
+  }
+  .toc-item:hover { border-color: var(--accent); color: var(--text); background: rgba(79,142,247,0.06); }
+  .toc-item .toc-icon { font-size: 16px; }
+  .toc-item strong { display: block; color: var(--text); font-size: 13px; }
+
+  /* ── ERROR TABLE ── */
+  .error-code { font-family: var(--font-mono); font-size: 11px; color: var(--red); }
+  .http-code { font-family: var(--font-mono); font-size: 11px; font-weight: 700; }
+  .http-4xx { color: var(--yellow); }
+  .http-5xx { color: var(--red); }
+  .http-2xx { color: var(--green); }
+
+  /* ── FOOTER ── */
+  footer { text-align: center; color: var(--text-dim); font-size: 12px; padding: 32px 0 0; border-top: 1px solid var(--border); }
+  footer a { color: var(--accent); text-decoration: none; }
+
+  ul { padding-left: 20px; color: var(--text-muted); font-size: 14px; }
+  ul li { margin-bottom: 6px; }
+  p { color: var(--text-muted); margin-bottom: 12px; font-size: 14px; }
+  h3 { color: var(--text); font-size: 16px; margin: 20px 0 10px; }
+  h4 { color: var(--text-muted); font-size: 14px; font-weight: 600; margin: 16px 0 8px; }
+</style>
+</head>
+<body>
+
+<!-- ═══ NAV ═══ -->
+<nav id="top-nav">
+  <div class="nav-brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+    PrimeStack
+  </div>
+  <a href="#getting-started">Getting Started</a>
+  <a href="#auth">Auth</a>
+  <a href="#admin">Admin</a>
+  <a href="#merchants">Merchants</a>
+  <a href="#wallets">Wallets</a>
+  <a href="#transfers">Transfers</a>
+  <a href="#s2s">S2S Engine</a>
+  <a href="#ledger">Ledger</a>
+  <a href="#iso8583">ISO 8583</a>
+  <a href="#fraud">Fraud</a>
+  <a href="#treasury">Treasury</a>
+  <a href="#settlement">Settlement</a>
+  <a href="#routing">Routing/BIN</a>
+  <a href="#monitoring">Monitoring</a>
+  <a href="#notifications">Notifications</a>
+  <a href="#swift">SWIFT</a>
+  <a href="#developer">Dev Platform</a>
+  <a href="#errors">Errors</a>
+</nav>
+
+<!-- ═══ MAIN ═══ -->
+<div class="page-wrapper">
+
+  <!-- HERO -->
+  <div class="hero">
+    <h1>PrimeStack <span>Asset Gateway</span> — Usage Guide</h1>
+    <p>Production-grade TypeScript + Fastify + PostgreSQL + Redis payment switch and asset gateway. Complete API reference and integration walkthrough.</p>
+    <div class="hero-badges">
+      <span class="badge badge-blue">Node.js 24</span>
+      <span class="badge badge-blue">TypeScript 5</span>
+      <span class="badge badge-green">Fastify 4</span>
+      <span class="badge badge-purple">PostgreSQL + Prisma 5</span>
+      <span class="badge badge-cyan">Redis + ioredis</span>
+      <span class="badge badge-yellow">15+ Modules</span>
+      <span class="badge badge-red">Double-Entry Ledger</span>
+    </div>
+  </div>
+
+  <!-- ─── TABLE OF CONTENTS ─── -->
+  <section>
+    <div class="section-header">
+      <div class="section-num">☰</div>
+      <h2>Table of Contents</h2>
+    </div>
+    <div class="toc-grid">
+      <a href="#getting-started" class="toc-item"><span class="toc-icon">🚀</span><div><strong>Getting Started</strong>Setup &amp; quickstart</div></a>
+      <a href="#auth" class="toc-item"><span class="toc-icon">🔐</span><div><strong>Authentication</strong>HMAC + JWT</div></a>
+      <a href="#admin" class="toc-item"><span class="toc-icon">⚙️</span><div><strong>Admin</strong>Users, keys, config</div></a>
+      <a href="#merchants" class="toc-item"><span class="toc-icon">🏪</span><div><strong>Merchants</strong>Merchant management</div></a>
+      <a href="#wallets" class="toc-item"><span class="toc-icon">👛</span><div><strong>Wallets</strong>Balances &amp; accounts</div></a>
+      <a href="#transfers" class="toc-item"><span class="toc-icon">↔️</span><div><strong>Transfers</strong>P2P &amp; payouts</div></a>
+      <a href="#s2s" class="toc-item"><span class="toc-icon">⚡</span><div><strong>S2S Engine</strong>Server-to-server</div></a>
+      <a href="#ledger" class="toc-item"><span class="toc-icon">📒</span><div><strong>Ledger</strong>Double-entry journal</div></a>
+      <a href="#iso8583" class="toc-item"><span class="toc-icon">💳</span><div><strong>ISO 8583</strong>Card processing</div></a>
+      <a href="#fraud" class="toc-item"><span class="toc-icon">🛡️</span><div><strong>Fraud</strong>Risk &amp; rules</div></a>
+      <a href="#treasury" class="toc-item"><span class="toc-icon">🏦</span><div><strong>Treasury</strong>Liquidity ops</div></a>
+      <a href="#settlement" class="toc-item"><span class="toc-icon">🔄</span><div><strong>Settlement</strong>Chargebacks</div></a>
+      <a href="#routing" class="toc-item"><span class="toc-icon">🗺️</span><div><strong>Routing/BIN</strong>BIN table &amp; rules</div></a>
+      <a href="#monitoring" class="toc-item"><span class="toc-icon">📊</span><div><strong>Monitoring</strong>Health &amp; metrics</div></a>
+      <a href="#notifications" class="toc-item"><span class="toc-icon">🔔</span><div><strong>Notifications</strong>Webhooks &amp; alerts</div></a>
+      <a href="#swift" class="toc-item"><span class="toc-icon">🌍</span><div><strong>SWIFT Payouts</strong>Cross-border</div></a>
+      <a href="#developer" class="toc-item"><span class="toc-icon">👨‍💻</span><div><strong>Dev Platform</strong>SDK &amp; apps</div></a>
+      <a href="#errors" class="toc-item"><span class="toc-icon">⚠️</span><div><strong>Error Reference</strong>All error codes</div></a>
+    </div>
+  </section>
+
+  <!-- ─── 1. GETTING STARTED ─── -->
+  <section id="getting-started">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <h2>Getting Started <small>Setup &amp; quickstart</small></h2>
+    </div>
+
+    <p>PrimeStack is a modular monolith — one deployable process, clean module boundaries, designed to extract to microservices when needed. Every financial operation flows through the double-entry ledger.</p>
+
+    <div class="callout callout-warn">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-content">
+        <strong>Prerequisites</strong>
+        Node.js ≥ 24, Docker Desktop, and PostgreSQL 15+ are required. Redis is managed via docker-compose.
+      </div>
+    </div>
+
+    <h3>Quick Setup</h3>
+    <ol class="steps">
+      <li><div class="step-num">1</div><div><strong>Start infrastructure</strong><p>Spin up PostgreSQL and Redis containers.</p></div></li>
+      <li><div class="step-num">2</div><div><strong>Install dependencies</strong><p>Run <code>npm install</code> in the project root.</p></div></li>
+      <li><div class="step-num">3</div><div><strong>Generate Prisma client</strong><p>Run <code>npx prisma generate</code> and <code>npx prisma db push</code> to apply the schema.</p></div></li>
+      <li><div class="step-num">4</div><div><strong>Seed the database</strong><p>Run <code>npx tsx prisma/seed.ts</code> — creates admin user, demo merchant, and HMAC key.</p></div></li>
+      <li><div class="step-num">5</div><div><strong>Start the server</strong><p>Run <code>npm run dev</code> — server listens on <code>http://localhost:8081</code>.</p></div></li>
+    </ol>
+
+    <div class="code-block">
+      <div class="code-block-header"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><span class="cmt"># 1. Start PostgreSQL + Redis</span>
+<span class="fn">docker compose up</span> -d
+
+<span class="cmt"># 2. Install deps</span>
+<span class="fn">npm install</span>
+
+<span class="cmt"># 3. Apply schema</span>
+<span class="fn">npx prisma generate</span>
+<span class="fn">npx prisma db push</span>
+
+<span class="cmt"># 4. Seed (saves HMAC secret to stdout)</span>
+<span class="fn">npx tsx</span> prisma/seed.ts
+
+<span class="cmt"># 5. Run dev server</span>
+<span class="fn">npm run dev</span>
+<span class="cmt"># → Server running at http://localhost:8081</span></pre>
+    </div>
+
+    <h3>Default Credentials</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Resource</th><th>Value</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>Admin email</td><td><code>admin@primestack.io</code></td><td>JWT admin login</td></tr>
+          <tr><td>Admin password</td><td><code>Admin@2026</code></td><td>Change in production</td></tr>
+          <tr><td>Merchant ID</td><td><code>MERCHANT-001</code></td><td>Demo merchant</td></tr>
+          <tr><td>HMAC Key ID</td><td><code>psk_demo_key_001</code></td><td>Secret printed by seed</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Base URL &amp; Response Envelope</h3>
+    <p>All API responses follow a consistent envelope shape. Paginated responses include a <code>pagination</code> field.</p>
+    <div class="code-block">
+      <div class="code-block-header"><span class="lang">json</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><span class="cmt">// Success</span>
+{
+  <span class="prop">"success"</span>: <span class="kw">true</span>,
+  <span class="prop">"data"</span>: { <span class="cmt">/* payload */</span> }
+}
+
+<span class="cmt">// Paginated</span>
+{
+  <span class="prop">"success"</span>: <span class="kw">true</span>,
+  <span class="prop">"data"</span>: [ <span class="cmt">/* items */</span> ],
+  <span class="prop">"pagination"</span>: {
+    <span class="prop">"page"</span>: <span class="num">1</span>, <span class="prop">"limit"</span>: <span class="num">20</span>,
+    <span class="prop">"total"</span>: <span class="num">120</span>, <span class="prop">"pages"</span>: <span class="num">6</span>
+  }
+}
+
+<span class="cmt">// Error</span>
+{
+  <span class="prop">"success"</span>: <span class="kw">false</span>,
+  <span class="prop">"error"</span>: {
+    <span class="prop">"code"</span>: <span class="str">"INSUFFICIENT_FUNDS"</span>,
+    <span class="prop">"message"</span>: <span class="str">"Insufficient funds for this transfer"</span>,
+    <span class="prop">"statusCode"</span>: <span class="num">422</span>
+  }
+}</pre>
+    </div>
+  </section>
+
+  <!-- ─── 2. AUTHENTICATION ─── -->
+  <section id="auth">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <h2>Authentication <small>HMAC-SHA256 &amp; JWT</small></h2>
+    </div>
+
+    <p>PrimeStack uses two authentication mechanisms depending on the caller context.</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <h3>🔑 HMAC-SHA256 — Merchant/API</h3>
+        <p>Used by merchants and server integrations. Signs the request body with a shared secret key. Suitable for server-to-server calls.</p>
+      </div>
+      <div class="card">
+        <h3>🎫 JWT Bearer — Admin UI</h3>
+        <p>Used by the admin dashboard and management endpoints. Short-lived access tokens obtained via the login endpoint.</p>
+      </div>
+    </div>
+
+    <h3>HMAC Authentication</h3>
+    <p>Each API call must include three headers. The signature covers the raw request body.</p>
+    <div class="code-block">
+      <div class="code-block-header"><span class="lang">http</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><span class="method-post">POST</span> <span class="url">/transfers</span> <span class="type">HTTP/1.1</span>
+<span class="hdr">X-Key-ID:</span> psk_demo_key_001
+<span class="hdr">X-Timestamp:</span> 1700000000000
+<span class="hdr">X-Signature:</span> sha256=&lt;HMAC-SHA256(secret, body)&gt;
+<span class="hdr">Content-Type:</span> application/json</pre>
+    </div>
+
+    <h4>Generating the signature (Node.js)</h4>
+    <div class="code-block">
+      <div class="code-block-header"><span class="lang">typescript</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><span class="kw">import</span> <span class="op">{</span> <span class="fn">createHmac</span> <span class="op">}</span> <span class="kw">from</span> <span class="str">'node:crypto'</span><span class="op">;</span>
+
+<span class="kw">function</span> <span class="fn">signRequest</span>(secret: <span class="type">string</span>, body: <span class="type">string</span>): <span class="type">string</span> <span class="op">{</span>
+  <span class="kw">return</span> <span class="str">'sha256='</span> <span class="op">+</span> <span class="fn">createHmac</span>(<span class="str">'sha256'</span>, secret)
+    .<span class="fn">update</span>(body)
+    .<span class="fn">digest</span>(<span class="str">'hex'</span>)<span class="op">;</span>
+<span class="op">}</span>
+
+<span class="kw">const</span> body <span class="op">=</span> <span class="fn">JSON.stringify</span>(<span class="op">{</span> amount: <span class="str">'100.00'</span>, currency: <span class="str">'USD'</span> <span class="op">}</span>)<span class="op">;</span>
+<span class="kw">const</span> signature <span class="op">=</span> <span class="fn">signRequest</span>(process.env.<span class="prop">HMAC_SECRET</span>, body)<span class="op">;</span></pre>
+    </div>
+
+    <h3>JWT Authentication</h3>
+    <p>Obtain a token via the admin login endpoint, then pass it as a Bearer token.</p>
+    <div class="code-block">
+      <div class="code-block-header"><span class="lang">http</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><span class="method-post">POST</span> <span class="url">/admin/auth/login</span>
+<span class="hdr">Content-Type:</span> application/json
+
+<span class="op">{</span>
+  <span class="prop">"email"</span>: <span class="str">"admin@primestack.io"</span>,
+  <span class="prop">"password"</span>: <span class="str">"Admin@2026"</span>
+<span class="op">}</span>
+
+<span class="cmt">→ Response:</span>
+<span class="op">{</span>
+  <span class="prop">"success"</span>: <span class="kw">true</span>,
+  <span class="prop">"data"</span>: <span class="op">{</span>
+    <span class="prop">"token"</span>: <span class="str">"eyJhbGci..."</span>,
+    <span class="prop">"expiresAt"</span>: <span class="str">"2026-01-02T00:00:00Z"</span>
+  <span class="op">}</span>
+<span class="op">}</span>
+
+<span class="cmt">→ Use in subsequent requests:</span>
+<span class="hdr">Authorization:</span> Bearer eyJhbGci...</pre>
+    </div>
+
+    <h3>Auth Endpoints</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="method-post">POST</span></td><td><code>/admin/auth/login</code></td><td>None</td><td>Obtain JWT token</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/admin/auth/refresh</code></td><td>JWT</td><td>Refresh JWT token</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/admin/auth/logout</code></td><td>JWT</td><td>Invalidate session</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/admin/api-keys</code></td><td>JWT</td><td>Create HMAC API key</td></tr>
+          <tr><td><span class="method-delete">DELETE</span></td><td><code>/admin/api-keys/:id</code></td><td>JWT</td><td>Revoke API key</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ─── 3. ADMIN ─── -->
+  <section id="admin">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <h2>Admin Module <small>/admin/*</small></h2>
+    </div>
+    <p>The Admin module manages platform-level configuration: user accounts, API keys, fee schedules, bank connections, and system settings. All endpoints require JWT authentication.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="method-get">GET</span></td><td><code>/admin/dashboard</code></td><td>Platform KPI summary</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/admin/users</code></td><td>List admin users</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/admin/users</code></td><td>Create admin user</td></tr>
+          <tr><td><span class="method-put">PUT</span></td><td><code>/admin/users/:id</code></td><td>Update admin user</td></tr>
+          <tr><td><span class="method-delete">DELETE</span></td><td><code>/admin/users/:id</code></td><td>Delete admin user</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/admin/api-keys</code></td><td>List API keys</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/admin/api-keys</code></td><td>Create API key (returns secret once)</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/admin/fee-schedules</code></td><td>List fee schedules</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/admin/fee-schedules</code></td><td>Create fee schedule</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/admin/bank-connections</code></td><td>List bank connections</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/admin/bank-connections</code></td><td>Add bank connection</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/admin/bank-accounts</code></td><td>Vault — list bank accounts</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/admin/bank-accounts</code></td><td>Vault — add bank account</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/admin/config</code></td><td>Read platform config</td></tr>
+          <tr><td><span class="method-put">PUT</span></td><td><code>/admin/config</code></td><td>Update platform config</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-info">
+      <div class="callout-icon">ℹ️</div>
+      <div class="callout-content">
+        <strong>API Key Secret</strong>
+        The HMAC secret is only returned once when you <code>POST /admin/api-keys</code>. Store it immediately — it cannot be retrieved again.
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── 4. MERCHANTS ─── -->
+  <section id="merchants">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <h2>Merchant Module <small>/merchants/*</small></h2>
+    </div>
+    <p>Manages merchant profiles, onboarding, settlement accounts, and acquiring configurations.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="method-get">GET</span></td><td><code>/merchants</code></td><td>JWT</td><td>List merchants (paginated)</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/merchants</code></td><td>JWT</td><td>Create merchant</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/merchants/:id</code></td><td>JWT/HMAC</td><td>Get merchant profile</td></tr>
+          <tr><td><span class="method-put">PUT</span></td><td><code>/merchants/:id</code></td><td>JWT</td><td>Update merchant</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/merchants/:id/activate</code></td><td>JWT</td><td>Activate merchant</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/merchants/:id/suspend</code></td><td>JWT</td><td>Suspend merchant</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/merchants/:id/wallets</code></td><td>JWT/HMAC</td><td>Merchant wallet balances</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/merchants/:id/transactions</code></td><td>JWT/HMAC</td><td>Transaction history</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/merchants/:id/settlement-accounts</code></td><td>JWT</td><td>Settlement bank accounts</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/merchants/:id/settlement-accounts</code></td><td>JWT</td><td>Add settlement account</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Create Merchant</h3>
+    <div class="code-block">
+      <div class="code-block-header"><span class="lang">json</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><span class="cmt">POST /merchants</span>
+<span class="op">{</span>
+  <span class="prop">"merchantId"</span>: <span class="str">"ACME-001"</span>,
+  <span class="prop">"name"</span>: <span class="str">"Acme Corp"</span>,
+  <span class="prop">"email"</span>: <span class="str">"payments@acme.com"</span>,
+  <span class="prop">"country"</span>: <span class="str">"US"</span>,
+  <span class="prop">"currency"</span>: <span class="str">"USD"</span>,
+  <span class="prop">"mcc"</span>: <span class="str">"5411"</span>,
+  <span class="prop">"webhookUrl"</span>: <span class="str">"https://acme.com/webhooks/payments"</span>
+<span class="op">}</span></pre>
+    </div>
+  </section>
+
+  <!-- ─── 5. WALLETS ─── -->
+  <section id="wallets">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <h2>Wallet Module <small>/wallets/*</small></h2>
+    </div>
+    <p>Wallets hold merchant and platform balances. Every balance change is backed by a ledger entry. Supports multi-currency, reserved balances, and liability accounts.</p>
+
+    <div class="callout callout-danger">
+      <div class="callout-icon">🚫</div>
+      <div class="callout-content">
+        <strong>Never update balances directly</strong>
+        Always use <code>LedgerService.postEntry()</code>. Direct balance mutations bypass audit trails and reconciliation.
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="method-get">GET</span></td><td><code>/wallets</code></td><td>JWT</td><td>List all wallets</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/wallets</code></td><td>JWT</td><td>Create wallet</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/wallets/:id</code></td><td>JWT/HMAC</td><td>Get wallet balance</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/wallets/:id/ledger</code></td><td>JWT/HMAC</td><td>Wallet ledger entries</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/wallets/:id/credit</code></td><td>JWT</td><td>Top up wallet (admin)</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/wallets/:id/debit</code></td><td>JWT</td><td>Debit wallet (admin)</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/wallets/:id/reserve</code></td><td>JWT/HMAC</td><td>Reserve funds</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/wallets/:id/release</code></td><td>JWT/HMAC</td><td>Release reservation</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/wallets/accounts</code></td><td>JWT</td><td>Chart of accounts</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Wallet Object</h3>
+    <div class="code-block">
+      <div class="code-block-header"><span class="lang">json</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><span class="op">{</span>
+  <span class="prop">"id"</span>: <span class="str">"wal_01HXYZ..."</span>,
+  <span class="prop">"merchantId"</span>: <span class="str">"MERCHANT-001"</span>,
+  <span class="prop">"currency"</span>: <span class="str">"USD"</span>,
+  <span class="prop">"balance"</span>: <span class="str">"10500.00"</span>,
+  <span class="prop">"reserved"</span>: <span class="str">"200.00"</span>,
+  <span class="prop">"available"</span>: <span class="str">"10300.00"</span>,
+  <span class="prop">"accountType"</span>: <span class="str">"MERCHANT_SETTLEMENT"</span>,
+  <span class="prop">"status"</span>: <span class="str">"ACTIVE"</span>,
+  <span class="prop">"createdAt"</span>: <span class="str">"2026-01-01T00:00:00Z"</span>
+<span class="op">}</span></pre>
+    </div>
+  </section>
+
+  <!-- ─── 6. TRANSFERS ─── -->
+  <section id="transfers">
+    <div class="section-header">
+      <div class="section-num">6</div>
+      <h2>Transfer Module <small>/transfers/*</small></h2>
+    </div>
+    <p>Handles P2P transfers, payouts, and internal movement of funds. Each transfer atomically creates double-entry ledger journal entries and emits webhook events.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="method-post">POST</span></td><td><code>/transfers</code></td><td>HMAC</td><td>Initiate transfer</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/transfers/:id</code></td><td>HMAC</td><td>Get transfer status</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/transfers</code></td><td>JWT/HMAC</td><td>List transfers</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/transfers/:id/cancel</code></td><td>HMAC</td><td>Cancel pending transfer</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/transfers/:id/reverse</code></td><td>JWT</td><td>Reverse completed transfer</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/transfers/:id/ledger</code></td><td>JWT</td><td>Ledger entries for transfer</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Initiate Transfer</h3>
+    <div class="code-block">
+      <div class="code-block-header"><span class="lang">json</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><span class="cmt">POST /transfers</span>
+<span class="op">{</span>
+  <span class="prop">"fromWalletId"</span>: <span class="str">"wal_source..."</span>,
+  <span class="prop">"toWalletId"</span>: <span class="str">"wal_dest..."</span>,
+  <span class="prop">"amount"</span>: <span class="str">"250.00"</span>,
+  <span class="prop">"currency"</span>: <span class="str">"USD"</span>,
+  <span class="prop">"reference"</span>: <span class="str">"INV-2026-001"</span>,
+  <span class="prop">"idempotencyKey"</span>: <span class="str">"transfer_abc123"</span>,
+  <span class="prop">"metadata"</span>: <span class="op">{</span> <span class="prop">"orderId"</span>: <span class="str">"ORD-999"</span> <span class="op">}</span>
+<span class="op">}</span></pre>
+    </div>
+
+    <div class="callout callout-info">
+      <div class="callout-icon">ℹ️</div>
+      <div class="callout-content">
+        <strong>Idempotency</strong>
+        Always supply a unique <code>idempotencyKey</code> per transfer attempt. Duplicate keys within 24 hours return the original transfer without re-executing.
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── 7. S2S ENGINE ─── -->
+  <section id="s2s">
+    <div class="section-header">
+      <div class="section-num">7</div>
+      <h2>S2S Engine <small>/s2s/* — ★ New Module</small></h2>
+    </div>
+    <p>The Server-to-Server engine handles encrypted, signed transaction payloads between trusted parties. It supports payload encryption (AES-256-GCM) layered on top of HMAC authentication for high-security integrations.</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <h3>🔒 Payload Encryption</h3>
+        <p>AES-256-GCM encryption for sensitive transaction data. Each request uses a unique IV. Keys are rotated per session.</p>
+      </div>
+      <div class="card">
+        <h3>⚡ Low-Latency Processing</h3>
+        <p>Optimized pipeline with Redis-backed session state. Typical round-trip under 50ms on co-located infrastructure.</p>
+      </div>
+      <div class="card">
+        <h3>🔄 Idempotent Replays</h3>
+        <p>S2S transactions are fully idempotent. Safe to retry on network failure — no double-charges.</p>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="method-post">POST</span></td><td><code>/s2s/sessions</code></td><td>HMAC</td><td>Create S2S session</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/s2s/transactions</code></td><td>HMAC + Session</td><td>Submit S2S transaction</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/s2s/transactions/:id</code></td><td>HMAC</td><td>Get S2S transaction status</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/s2s/sessions/:id/refresh</code></td><td>HMAC</td><td>Refresh session key</td></tr>
+          <tr><td><span class="method-delete">DELETE</span></td><td><code>/s2s/sessions/:id</code></td><td>HMAC</td><td>Terminate session</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/s2s/sessions/:id/stats</code></td><td>HMAC</td><td>Session statistics</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>S2S Session Flow</h3>
+    <div class="code-block">
+      <div class="code-block-header"><span class="lang">typescript</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><span class="cmt">// 1. Create a session</span>
+<span class="kw">const</span> session <span class="op">=</span> <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'/s2s/sessions'</span>, <span class="op">{</span>
+  method: <span class="str">'POST'</span>,
+  headers: hmacHeaders(body),
+  body: <span class="fn">JSON.stringify</span>(<span class="op">{</span>
+    merchantId: <span class="str">'MERCHANT-001'</span>,
+    ttlSeconds: <span class="num">3600</span>
+  <span class="op">}</span>)
+<span class="op">}</span>)<span class="op">;</span>
+<span class="cmt">// → { sessionId, encryptionKey, iv }</span>
+
+<span class="cmt">// 2. Encrypt payload with returned key</span>
+<span class="kw">const</span> encrypted <span class="op">=</span> <span class="fn">encryptAES256GCM</span>(sessionKey, transactionPayload)<span class="op">;</span>
+
+<span class="cmt">// 3. Submit transaction</span>
+<span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'/s2s/transactions'</span>, <span class="op">{</span>
+  method: <span class="str">'POST'</span>,
+  headers: <span class="op">{</span> ...<span class="fn">hmacHeaders</span>(encrypted), <span class="prop">'X-Session-ID'</span>: session.<span class="prop">sessionId</span> <span class="op">}</span>,
+  body: encrypted
+<span class="op">}</span>)<span class="op">;</span></pre>
+    </div>
+  </section>
+
+  <!-- ─── 8. LEDGER ─── -->
+  <section id="ledger">
+    <div class="section-header">
+      <div class="section-num">8</div>
+      <h2>Ledger Module <small>/ledger/*</small></h2>
+    </div>
+    <p>The immutable double-entry journal. Every financial operation — transfer, settlement, fee, chargeback, reversal — creates a journal entry here. The ledger is the source of truth.</p>
+
+    <div class="callout callout-warn">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-content">
+        <strong>Core Design Rule</strong>
+        Every financial change <strong>must</strong> call <code>LedgerService.postEntry()</code>. Direct DB writes that bypass the ledger violate double-entry invariants and will break reconciliation.
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="method-get">GET</span></td><td><code>/ledger/entries</code></td><td>JWT</td><td>List journal entries (paginated)</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/ledger/entries/:id</code></td><td>JWT</td><td>Get journal entry</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/ledger/accounts</code></td><td>JWT</td><td>Chart of accounts</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/ledger/accounts/:id/balance</code></td><td>JWT</td><td>Account balance at date</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/ledger/trial-balance</code></td><td>JWT</td><td>Trial balance report</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/ledger/reconciliation</code></td><td>JWT</td><td>Reconciliation summary</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Double-Entry Journal Entry</h3>
+    <div class="code-block">
+      <div class="code-block-header"><span class="lang">json</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><span class="op">{</span>
+  <span class="prop">"id"</span>: <span class="str">"jnl_01HXYZ..."</span>,
+  <span class="prop">"transactionId"</span>: <span class="str">"txn_01HABC..."</span>,
+  <span class="prop">"entryType"</span>: <span class="str">"TRANSFER"</span>,
+  <span class="prop">"debitAccountId"</span>: <span class="str">"acc_merchant_001"</span>,
+  <span class="prop">"creditAccountId"</span>: <span class="str">"acc_platform_float"</span>,
+  <span class="prop">"amount"</span>: <span class="str">"250.0000000000000000000000000000"</span>,
+  <span class="prop">"currency"</span>: <span class="str">"USD"</span>,
+  <span class="prop">"description"</span>: <span class="str">"Transfer INV-2026-001"</span>,
+  <span class="prop">"metadata"</span>: <span class="op">{}</span>,
+  <span class="prop">"postedAt"</span>: <span class="str">"2026-01-15T10:30:00Z"</span>
+<span class="op">}</span></pre>
+    </div>
+
+    <h3>Posting a Custom Entry (Service API)</h3>
+    <div class="code-block">
+      <div class="code-block-header"><span class="lang">typescript</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><span class="kw">import</span> <span class="op">{</span> ledgerService <span class="op">}</span> <span class="kw">from</span> <span class="str">'../ledger/ledger.module'</span><span class="op">;</span>
+<span class="kw">import</span> <span class="op">{</span> <span class="type">Decimal</span> <span class="op">}</span> <span class="kw">from</span> <span class="str">'../../core/decimal'</span><span class="op">;</span>
+
+<span class="kw">await</span> ledgerService.<span class="fn">postEntry</span>(<span class="op">{</span>
+  transactionId: txn.<span class="prop">id</span>,
+  entryType: <span class="str">'FEE'</span>,
+  debitAccountId: merchantAccount.<span class="prop">id</span>,
+  creditAccountId: platformFeeAccount.<span class="prop">id</span>,
+  amount: <span class="kw">new</span> <span class="type">Decimal</span>(<span class="str">'2.50'</span>),
+  currency: <span class="str">'USD'</span>,
+  description: <span class="str">'Processing fee 1%'</span>,
+  metadata: <span class="op">{</span> feeScheduleId: <span class="str">'fs_001'</span> <span class="op">}</span>
+<span class="op">}</span>)<span class="op">;</span></pre>
+    </div>
+  </section>
+
+  <!-- ─── 9. ISO 8583 / TERMINALS ─── -->
+  <section id="iso8583">
+    <div class="section-header">
+      <div class="section-num">9</div>
+      <h2>ISO 8583 &amp; Terminals <small>/iso8583/*, /terminals/*</small></h2>
+    </div>
+    <p>ISO 8583 message processing pipeline for card-present and card-not-present transactions. Terminal management for POS device registration, key injection, and reconciliation.</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <h3>📨 ISO 8583 Messages</h3>
+        <p>0100 (Auth Request), 0110 (Auth Response), 0200 (Financial), 0400 (Reversal), 0420 (Reversal Advice), 0800 (Network Management).</p>
+      </div>
+      <div class="card">
+        <h3>🖥️ Terminal Management</h3>
+        <p>POS terminal registration, TMK/TPK injection, terminal batches, and EOD reconciliation.</p>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="method-post">POST</span></td><td><code>/iso8583/authorize</code></td><td>Process auth request (0100)</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/iso8583/financial</code></td><td>Process financial request (0200)</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/iso8583/reversal</code></td><td>Process reversal (0400)</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/iso8583/network</code></td><td>Network management (0800)</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/terminals</code></td><td>List terminals</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/terminals</code></td><td>Register terminal</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/terminals/:id</code></td><td>Terminal details</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/terminals/:id/inject-keys</code></td><td>TMK/TPK key injection</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/terminals/:id/batch-close</code></td><td>EOD batch close</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/terminals/:id/batches</code></td><td>Batch history</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ─── 10. FRAUD ─── -->
+  <section id="fraud">
+    <div class="section-header">
+      <div class="section-num">10</div>
+      <h2>Fraud Module <small>/fraud/*</small></h2>
+    </div>
+    <p>Real-time fraud detection via configurable rule engine, velocity checks, device fingerprinting, and ML score integration. Each transaction is scored before authorization.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="method-post">POST</span></td><td><code>/fraud/evaluate</code></td><td>Score a transaction</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/fraud/rules</code></td><td>List fraud rules</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/fraud/rules</code></td><td>Create fraud rule</td></tr>
+          <tr><td><span class="method-put">PUT</span></td><td><code>/fraud/rules/:id</code></td><td>Update fraud rule</td></tr>
+          <tr><td><span class="method-delete">DELETE</span></td><td><code>/fraud/rules/:id</code></td><td>Delete fraud rule</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/fraud/alerts</code></td><td>List fraud alerts</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/fraud/alerts/:id/review</code></td><td>Mark alert reviewed</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/fraud/velocity</code></td><td>Velocity limit config</td></tr>
+          <tr><td><span class="method-put">PUT</span></td><td><code>/fraud/velocity</code></td><td>Update velocity limits</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/fraud/blocklist</code></td><td>Blocked cards/IPs</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/fraud/blocklist</code></td><td>Add to blocklist</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Fraud Rule Structure</h3>
+    <div class="code-block">
+      <div class="code-block-header"><span class="lang">json</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><span class="op">{</span>
+  <span class="prop">"name"</span>: <span class="str">"High-value international"</span>,
+  <span class="prop">"enabled"</span>: <span class="kw">true</span>,
+  <span class="prop">"priority"</span>: <span class="num">100</span>,
+  <span class="prop">"conditions"</span>: <span class="op">[</span>
+    <span class="op">{</span> <span class="prop">"field"</span>: <span class="str">"amount"</span>, <span class="prop">"op"</span>: <span class="str">"gt"</span>, <span class="prop">"value"</span>: <span class="str">"5000"</span> <span class="op">}</span>,
+    <span class="op">{</span> <span class="prop">"field"</span>: <span class="str">"cardCountry"</span>, <span class="prop">"op"</span>: <span class="str">"ne"</span>, <span class="prop">"value"</span>: <span class="str">"US"</span> <span class="op">}</span>
+  <span class="op">]</span>,
+  <span class="prop">"action"</span>: <span class="str">"REVIEW"</span>,
+  <span class="prop">"scoreImpact"</span>: <span class="num">35</span>
+<span class="op">}</span></pre>
+    </div>
+  </section>
+
+  <!-- ─── 11. TREASURY ─── -->
+  <section id="treasury">
+    <div class="section-header">
+      <div class="section-num">11</div>
+      <h2>Treasury Module <small>/treasury/*</small></h2>
+    </div>
+    <p>Liquidity management, FX operations, reserve pools, and nostro/vostro account management. Tracks platform-level cash positions across currencies.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="method-get">GET</span></td><td><code>/treasury/positions</code></td><td>Current cash positions</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/treasury/fx-rates</code></td><td>Current FX rates</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/treasury/fx-rates</code></td><td>Set FX rate</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/treasury/fx-convert</code></td><td>Convert currency</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/treasury/reserves</code></td><td>Reserve pool balances</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/treasury/reserves/fund</code></td><td>Fund reserve pool</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/treasury/reserves/draw</code></td><td>Draw from reserve</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/treasury/nostro</code></td><td>Nostro accounts</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/treasury/reports/daily</code></td><td>Daily treasury report</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ─── 12. SETTLEMENT / CHARGEBACKS ─── -->
+  <section id="settlement">
+    <div class="section-header">
+      <div class="section-num">12</div>
+      <h2>Settlement &amp; Chargebacks <small>/settlement/*, /chargebacks/*, /transactions/*</small></h2>
+    </div>
+    <p>End-of-day settlement runs, merchant payout execution, chargeback lifecycle management, and transaction history. Part of the Switch Core module.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="method-get">GET</span></td><td><code>/settlement/batches</code></td><td>List settlement batches</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/settlement/batches</code></td><td>Create settlement batch</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/settlement/batches/:id/run</code></td><td>Execute settlement batch</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/settlement/batches/:id</code></td><td>Batch details &amp; status</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/reconciliation/reports</code></td><td>Reconciliation reports</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/reconciliation/run</code></td><td>Trigger reconciliation</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/chargebacks</code></td><td>List chargebacks</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/chargebacks</code></td><td>Raise chargeback</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/chargebacks/:id/accept</code></td><td>Accept chargeback</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/chargebacks/:id/dispute</code></td><td>Dispute chargeback</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/transactions</code></td><td>Transaction ledger history</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/transactions/:id</code></td><td>Transaction detail</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ─── 13. ROUTING / BIN ─── -->
+  <section id="routing">
+    <div class="section-header">
+      <div class="section-num">13</div>
+      <h2>Routing &amp; BIN Module <small>/routes/*, /bins/*</small></h2>
+    </div>
+    <p>Intelligent transaction routing based on BIN tables, card type, amount, geography, and acquirer availability. Supports weighted routing, failover, and cost-optimized rules.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="method-get">GET</span></td><td><code>/routes</code></td><td>List routing rules</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/routes</code></td><td>Create routing rule</td></tr>
+          <tr><td><span class="method-put">PUT</span></td><td><code>/routes/:id</code></td><td>Update routing rule</td></tr>
+          <tr><td><span class="method-delete">DELETE</span></td><td><code>/routes/:id</code></td><td>Delete routing rule</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/routes/resolve</code></td><td>Resolve route for transaction</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/bins</code></td><td>List BIN ranges</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/bins</code></td><td>Add BIN range</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/bins/lookup</code></td><td>Look up a card BIN</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/bins/import</code></td><td>Bulk import BIN table</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>BIN Lookup Response</h3>
+    <div class="code-block">
+      <div class="code-block-header"><span class="lang">json</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><span class="cmt">POST /bins/lookup  { "bin": "424242" }</span>
+<span class="op">{</span>
+  <span class="prop">"bin"</span>: <span class="str">"424242"</span>,
+  <span class="prop">"network"</span>: <span class="str">"VISA"</span>,
+  <span class="prop">"cardType"</span>: <span class="str">"CREDIT"</span>,
+  <span class="prop">"cardProduct"</span>: <span class="str">"SIGNATURE"</span>,
+  <span class="prop">"issuerCountry"</span>: <span class="str">"US"</span>,
+  <span class="prop">"issuerName"</span>: <span class="str">"Chase Bank"</span>,
+  <span class="prop">"currency"</span>: <span class="str">"USD"</span>
+<span class="op">}</span></pre>
+    </div>
+  </section>
+
+  <!-- ─── 14. MONITORING ─── -->
+  <section id="monitoring">
+    <div class="section-header">
+      <div class="section-num">14</div>
+      <h2>Monitoring Module <small>/monitoring/*</small></h2>
+    </div>
+    <p>System health, performance metrics, transaction throughput, error rates, and SLA tracking. Exposes Prometheus-compatible metrics endpoint.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="method-get">GET</span></td><td><code>/monitoring/health</code></td><td>Health check (DB + Redis)</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/monitoring/metrics</code></td><td>Prometheus metrics</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/monitoring/dashboard</code></td><td>Real-time KPI dashboard</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/monitoring/transactions/stats</code></td><td>TPS, approval rate, avg latency</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/monitoring/errors</code></td><td>Error rate breakdown</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/monitoring/queues</code></td><td>Redis queue depths</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/monitoring/sla</code></td><td>SLA compliance report</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Health Check Response</h3>
+    <div class="code-block">
+      <div class="code-block-header"><span class="lang">json</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><span class="op">{</span>
+  <span class="prop">"status"</span>: <span class="str">"healthy"</span>,
+  <span class="prop">"uptime"</span>: <span class="num">86400</span>,
+  <span class="prop">"version"</span>: <span class="str">"1.0.0"</span>,
+  <span class="prop">"checks"</span>: <span class="op">{</span>
+    <span class="prop">"database"</span>: <span class="str">"ok"</span>,
+    <span class="prop">"redis"</span>: <span class="str">"ok"</span>,
+    <span class="prop">"memory"</span>: <span class="str">"ok"</span>
+  <span class="op">}</span>
+<span class="op">}</span></pre>
+    </div>
+  </section>
+
+  <!-- ─── 15. NOTIFICATIONS ─── -->
+  <section id="notifications">
+    <div class="section-header">
+      <div class="section-num">15</div>
+      <h2>Notifications Module <small>/notifications/*</small></h2>
+    </div>
+    <p>Webhook delivery, event subscriptions, notification history, and retry management. Supports HTTP webhooks with HMAC signature verification on delivery.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="method-get">GET</span></td><td><code>/notifications/webhooks</code></td><td>List webhook endpoints</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/notifications/webhooks</code></td><td>Register webhook</td></tr>
+          <tr><td><span class="method-put">PUT</span></td><td><code>/notifications/webhooks/:id</code></td><td>Update webhook</td></tr>
+          <tr><td><span class="method-delete">DELETE</span></td><td><code>/notifications/webhooks/:id</code></td><td>Delete webhook</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/notifications/webhooks/:id/test</code></td><td>Send test payload</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/notifications/events</code></td><td>Event history (paginated)</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/notifications/events/:id/retry</code></td><td>Retry failed delivery</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/notifications/subscriptions</code></td><td>Event type subscriptions</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Webhook Payload Shape</h3>
+    <div class="code-block">
+      <div class="code-block-header"><span class="lang">json</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><span class="op">{</span>
+  <span class="prop">"eventId"</span>: <span class="str">"evt_01HXYZ..."</span>,
+  <span class="prop">"eventType"</span>: <span class="str">"transfer.completed"</span>,
+  <span class="prop">"createdAt"</span>: <span class="str">"2026-01-15T10:30:00Z"</span>,
+  <span class="prop">"data"</span>: <span class="op">{</span> <span class="cmt">/* event-specific payload */</span> <span class="op">}</span>
+<span class="op">}</span>
+<span class="cmt">// Delivery headers:</span>
+<span class="hdr">X-PrimeStack-Event:</span> transfer.completed
+<span class="hdr">X-PrimeStack-Signature:</span> sha256=&lt;HMAC of payload&gt;
+<span class="hdr">X-PrimeStack-Delivery:</span> evt_01HXYZ...</pre>
+    </div>
+  </section>
+
+  <!-- ─── 16. SWIFT PAYOUTS ─── -->
+  <section id="swift">
+    <div class="section-header">
+      <div class="section-num">16</div>
+      <h2>SWIFT Payouts <small>/swift-payouts/*</small></h2>
+    </div>
+    <p>Cross-border wire transfers via SWIFT MT103/MT202. Supports correspondent banking, FX conversion, compliance screening (OFAC/sanctions), and full message tracing.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="method-post">POST</span></td><td><code>/swift-payouts</code></td><td>Initiate SWIFT payout</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/swift-payouts/:id</code></td><td>Payout status &amp; UETR</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/swift-payouts</code></td><td>List payouts</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/swift-payouts/:id/cancel</code></td><td>Request recall (gpi)</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/swift-payouts/:id/tracking</code></td><td>GPI tracking events</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/swift-payouts/validate-iban</code></td><td>Validate IBAN</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/swift-payouts/validate-bic</code></td><td>Validate BIC/SWIFT code</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/swift-payouts/fee-estimate</code></td><td>Fee + FX estimate</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Initiate SWIFT Payout</h3>
+    <div class="code-block">
+      <div class="code-block-header"><span class="lang">json</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><span class="cmt">POST /swift-payouts</span>
+<span class="op">{</span>
+  <span class="prop">"amount"</span>: <span class="str">"10000.00"</span>,
+  <span class="prop">"currency"</span>: <span class="str">"EUR"</span>,
+  <span class="prop">"beneficiary"</span>: <span class="op">{</span>
+    <span class="prop">"name"</span>: <span class="str">"Acme GmbH"</span>,
+    <span class="prop">"iban"</span>: <span class="str">"DE89370400440532013000"</span>,
+    <span class="prop">"bic"</span>: <span class="str">"COBADEFFXXX"</span>,
+    <span class="prop">"bankCountry"</span>: <span class="str">"DE"</span>
+  <span class="op">}</span>,
+  <span class="prop">"remittanceInfo"</span>: <span class="str">"Invoice INV-2026-042"</span>,
+  <span class="prop">"idempotencyKey"</span>: <span class="str">"swift_abc123"</span>
+<span class="op">}</span></pre>
+    </div>
+  </section>
+
+  <!-- ─── 17. DEVELOPER PLATFORM ─── -->
+  <section id="developer">
+    <div class="section-header">
+      <div class="section-num">17</div>
+      <h2>Developer Platform <small>/developer/*</small></h2>
+    </div>
+    <p>Self-serve developer portal: app registration, SDK credential management, sandbox environments, OAuth 2.0 flows, and usage analytics for third-party integrators.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="method-get">GET</span></td><td><code>/developer/apps</code></td><td>List registered apps</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/developer/apps</code></td><td>Register app</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/developer/apps/:id</code></td><td>App details</td></tr>
+          <tr><td><span class="method-put">PUT</span></td><td><code>/developer/apps/:id</code></td><td>Update app</td></tr>
+          <tr><td><span class="method-delete">DELETE</span></td><td><code>/developer/apps/:id</code></td><td>Delete app</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/developer/apps/:id/rotate-secret</code></td><td>Rotate client secret</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/developer/apps/:id/usage</code></td><td>API usage stats</td></tr>
+          <tr><td><span class="method-get">GET</span></td><td><code>/developer/sandbox/transactions</code></td><td>Sandbox transaction history</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/developer/sandbox/simulate</code></td><td>Simulate transaction outcome</td></tr>
+          <tr><td><span class="method-post">POST</span></td><td><code>/developer/oauth/token</code></td><td>OAuth 2.0 token endpoint</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-success">
+      <div class="callout-icon">✅</div>
+      <div class="callout-content">
+        <strong>Sandbox Mode</strong>
+        Use <code>X-Sandbox: true</code> header or configure a sandbox API key to run transactions against the test environment without affecting live balances.
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── 18. ERROR REFERENCE ─── -->
+  <section id="errors">
+    <div class="section-header">
+      <div class="section-num">18</div>
+      <h2>Error Reference <small>All error codes</small></h2>
+    </div>
+    <p>All errors follow the envelope shape with <code>error.code</code>, <code>error.message</code>, and <code>error.statusCode</code>. Error messages are i18n-aware — pass <code>Accept-Language</code> or <code>?lang=</code> to localize.</p>
+
+    <h3>Authentication Errors</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Code</th><th>HTTP</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="error-code">UNAUTHORIZED</span></td><td><span class="http-code http-4xx">401</span></td><td>Missing or invalid authentication</td></tr>
+          <tr><td><span class="error-code">INVALID_SIGNATURE</span></td><td><span class="http-code http-4xx">401</span></td><td>HMAC signature mismatch</td></tr>
+          <tr><td><span class="error-code">EXPIRED_TOKEN</span></td><td><span class="http-code http-4xx">401</span></td><td>JWT token has expired</td></tr>
+          <tr><td><span class="error-code">INVALID_API_KEY</span></td><td><span class="http-code http-4xx">401</span></td><td>API key not found or revoked</td></tr>
+          <tr><td><span class="error-code">FORBIDDEN</span></td><td><span class="http-code http-4xx">403</span></td><td>Insufficient permissions</td></tr>
+          <tr><td><span class="error-code">IP_BLOCKED</span></td><td><span class="http-code http-4xx">403</span></td><td>Request IP not in whitelist</td></tr>
+          <tr><td><span class="error-code">REPLAY_ATTACK</span></td><td><span class="http-code http-4xx">401</span></td><td>Timestamp too old (>5min)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Validation Errors</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Code</th><th>HTTP</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="error-code">VALIDATION_ERROR</span></td><td><span class="http-code http-4xx">400</span></td><td>Request body fails Zod schema</td></tr>
+          <tr><td><span class="error-code">INVALID_CURRENCY</span></td><td><span class="http-code http-4xx">400</span></td><td>Unsupported currency code</td></tr>
+          <tr><td><span class="error-code">INVALID_AMOUNT</span></td><td><span class="http-code http-4xx">400</span></td><td>Amount must be positive decimal</td></tr>
+          <tr><td><span class="error-code">INVALID_IBAN</span></td><td><span class="http-code http-4xx">400</span></td><td>IBAN checksum failed</td></tr>
+          <tr><td><span class="error-code">INVALID_BIC</span></td><td><span class="http-code http-4xx">400</span></td><td>BIC format invalid</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Business Logic Errors</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Code</th><th>HTTP</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="error-code">INSUFFICIENT_FUNDS</span></td><td><span class="http-code http-4xx">422</span></td><td>Wallet balance too low</td></tr>
+          <tr><td><span class="error-code">WALLET_FROZEN</span></td><td><span class="http-code http-4xx">422</span></td><td>Wallet is suspended</td></tr>
+          <tr><td><span class="error-code">MERCHANT_SUSPENDED</span></td><td><span class="http-code http-4xx">422</span></td><td>Merchant account suspended</td></tr>
+          <tr><td><span class="error-code">DUPLICATE_IDEMPOTENCY_KEY</span></td><td><span class="http-code http-2xx">200</span></td><td>Returns original response</td></tr>
+          <tr><td><span class="error-code">TRANSFER_NOT_CANCELABLE</span></td><td><span class="http-code http-4xx">422</span></td><td>Transfer already completed</td></tr>
+          <tr><td><span class="error-code">FRAUD_BLOCKED</span></td><td><span class="http-code http-4xx">422</span></td><td>Transaction blocked by fraud rules</td></tr>
+          <tr><td><span class="error-code">SETTLEMENT_LOCKED</span></td><td><span class="http-code http-4xx">409</span></td><td>Settlement batch in progress</td></tr>
+          <tr><td><span class="error-code">CURRENCY_MISMATCH</span></td><td><span class="http-code http-4xx">422</span></td><td>Source/dest currency mismatch</td></tr>
+          <tr><td><span class="error-code">LIMIT_EXCEEDED</span></td><td><span class="http-code http-4xx">422</span></td><td>Transaction or velocity limit hit</td></tr>
+          <tr><td><span class="error-code">NOT_FOUND</span></td><td><span class="http-code http-4xx">404</span></td><td>Resource does not exist</td></tr>
+          <tr><td><span class="error-code">CONFLICT</span></td><td><span class="http-code http-4xx">409</span></td><td>Resource already exists</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>System Errors</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Code</th><th>HTTP</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="error-code">INTERNAL_ERROR</span></td><td><span class="http-code http-5xx">500</span></td><td>Unhandled server error</td></tr>
+          <tr><td><span class="error-code">DATABASE_ERROR</span></td><td><span class="http-code http-5xx">503</span></td><td>PostgreSQL unavailable</td></tr>
+          <tr><td><span class="error-code">CACHE_ERROR</span></td><td><span class="http-code http-5xx">503</span></td><td>Redis unavailable</td></tr>
+          <tr><td><span class="error-code">LEDGER_IMBALANCE</span></td><td><span class="http-code http-5xx">500</span></td><td>Double-entry invariant violated</td></tr>
+          <tr><td><span class="error-code">RATE_LIMITED</span></td><td><span class="http-code http-4xx">429</span></td><td>Too many requests</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Extending AppError</h3>
+    <div class="code-block">
+      <div class="code-block-header"><span class="lang">typescript</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><span class="kw">import</span> <span class="op">{</span> <span class="type">AppError</span> <span class="op">}</span> <span class="kw">from</span> <span class="str">'../../core/errors'</span><span class="op">;</span>
+
+<span class="cmt">// ✅ Correct — use AppError</span>
+<span class="kw">throw new</span> <span class="type">AppError</span>(<span class="str">'INSUFFICIENT_FUNDS'</span>, <span class="num">422</span>)<span class="op">;</span>
+
+<span class="cmt">// ❌ Wrong — never throw plain Error in services</span>
+<span class="kw">throw new</span> <span class="type">Error</span>(<span class="str">'not enough money'</span>)<span class="op">;</span>
+
+<span class="cmt">// With i18n message key:</span>
+<span class="kw">throw new</span> <span class="type">AppError</span>(<span class="str">'INSUFFICIENT_FUNDS'</span>, <span class="num">422</span>, {
+  messageKey: <span class="str">'errors.INSUFFICIENT_FUNDS'</span>
+})<span class="op">;</span></pre>
+    </div>
+  </section>
+
+  <footer>
+    <p>PrimeStack Asset Gateway — <a href="directory-tree.html">Directory Tree</a> — Built with TypeScript + Fastify + PostgreSQL</p>
+  </footer>
+
+</div>
+
+<script>
+// ── COPY BUTTON ──
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+}
+
+// ── ACTIVE NAV HIGHLIGHTING ──
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('nav a[href^="#"]');
+
+function updateNav() {
+  let current = '';
+  sections.forEach(s => {
+    const top = s.getBoundingClientRect().top;
+    if (top <= 80) current = s.id;
+  });
+  navLinks.forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+  });
+}
+window.addEventListener('scroll', updateNav, { passive: true });
+updateNav();
+</script>
+</body>
+</html>

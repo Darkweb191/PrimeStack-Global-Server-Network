@@ -1,0 +1,74 @@
+{
+  "app": {
+    "name": "PrimeStack Switch",
+    "tagline": "Payment Switch & Asset Gateway"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "pending": "Pending",
+    "suspended": "Suspended",
+    "completed": "Completed",
+    "failed": "Failed",
+    "processing": "Processing",
+    "online": "Online",
+    "offline": "Offline",
+    "degraded": "Degraded",
+    "maintenance": "Maintenance"
+  },
+  "account": {
+    "type": {
+      "ASSET": "Asset",
+      "LIABILITY": "Liability",
+      "EQUITY": "Equity",
+      "REVENUE": "Revenue",
+      "EXPENSE": "Expense"
+    },
+    "status": {
+      "ACTIVE": "Active",
+      "FROZEN": "Frozen",
+      "CLOSED": "Closed"
+    }
+  },
+  "transfer": {
+    "type": {
+      "T2T": "Terminal to Terminal",
+      "S2S": "Server to Server",
+      "IP2IP": "IP to IP",
+      "WALLET": "Wallet Transfer",
+      "MERCHANT": "Merchant Transfer",
+      "BULK": "Bulk Transfer"
+    },
+    "status": {
+      "INITIATED": "Initiated",
+      "PENDING": "Pending",
+      "PROCESSING": "Processing",
+      "COMPLETED": "Completed",
+      "FAILED": "Failed",
+      "REVERSED": "Reversed",
+      "PARTIAL": "Partial"
+    }
+  },
+  "wallet": {
+    "type": {
+      "USER": "User Wallet",
+      "MERCHANT": "Merchant Wallet",
+      "ESCROW": "Escrow Wallet",
+      "PAYOUT": "Payout Wallet"
+    }
+  },
+  "actions": {
+    "create": "Create",
+    "update": "Update",
+    "delete": "Delete",
+    "approve": "Approve",
+    "reject": "Reject",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "search": "Search",
+    "export": "Export",
+    "import": "Import",
+    "refresh": "Refresh",
+    "configure": "Configure"
+  }
+}

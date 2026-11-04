@@ -1,0 +1,38 @@
+{
+  "TRANSFER_COMPLETED": {
+    "subject": "Transferência Concluída",
+    "body": "Sua transferência {{type}} de {{amount}} {{currency}} foi concluída com sucesso. Referência: {{reference}}"
+  },
+  "TRANSFER_FAILED": {
+    "subject": "Transferência Falhou",
+    "body": "Sua transferência {{type}} de {{amount}} {{currency}} falhou. Motivo: {{reason}}. Referência: {{reference}}"
+  },
+  "TRANSFER_INITIATED": {
+    "subject": "Transferência Iniciada",
+    "body": "Uma transferência {{type}} de {{amount}} {{currency}} foi iniciada. Referência: {{reference}}"
+  },
+  "TERMINAL_OFFLINE": {
+    "subject": "Terminal Offline",
+    "body": "O terminal {{tid}} ({{serialNumber}}) ficou offline. Última conexão: {{lastSeen}}"
+  },
+  "SETTLEMENT_COMPLETED": {
+    "subject": "Liquidação Concluída",
+    "body": "O lote de liquidação {{batchNumber}} foi concluído. Total: {{totalAmount}} {{currency}}, Transações: {{transactionCount}}"
+  },
+  "FRAUD_ALERT": {
+    "subject": "Alerta de Fraude",
+    "body": "Um alerta de fraude foi acionado para {{entityType}} {{entityId}}. Nível de risco: {{level}}"
+  },
+  "KYC_APPROVED": {
+    "subject": "KYC Aprovado",
+    "body": "Sua verificação KYC foi aprovada. Agora você pode acessar todos os recursos da plataforma."
+  },
+  "KYC_REJECTED": {
+    "subject": "KYC Rejeitado",
+    "body": "Sua verificação KYC foi rejeitada. Motivo: {{reason}}. Por favor, entre em contato com o suporte."
+  },
+  "LOW_BALANCE": {
+    "subject": "Alerta de Saldo Baixo",
+    "body": "O saldo da conta {{accountCode}} ({{balance}} {{currency}}) está abaixo do limite mínimo ({{minBalance}} {{currency}})."
+  }
+}

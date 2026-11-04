@@ -1,0 +1,38 @@
+{
+  "TRANSFER_COMPLETED": {
+    "subject": "Transfer Completed",
+    "body": "Your {{type}} transfer of {{amount}} {{currency}} has been completed successfully. Reference: {{reference}}"
+  },
+  "TRANSFER_FAILED": {
+    "subject": "Transfer Failed",
+    "body": "Your {{type}} transfer of {{amount}} {{currency}} has failed. Reason: {{reason}}. Reference: {{reference}}"
+  },
+  "TRANSFER_INITIATED": {
+    "subject": "Transfer Initiated",
+    "body": "A {{type}} transfer of {{amount}} {{currency}} has been initiated. Reference: {{reference}}"
+  },
+  "TERMINAL_OFFLINE": {
+    "subject": "Terminal Offline",
+    "body": "Terminal {{tid}} ({{serialNumber}}) has gone offline. Last seen: {{lastSeen}}"
+  },
+  "SETTLEMENT_COMPLETED": {
+    "subject": "Settlement Completed",
+    "body": "Settlement batch {{batchNumber}} has been completed. Total: {{totalAmount}} {{currency}}, Transactions: {{transactionCount}}"
+  },
+  "FRAUD_ALERT": {
+    "subject": "Fraud Alert",
+    "body": "A fraud alert has been triggered for {{entityType}} {{entityId}}. Risk level: {{level}}"
+  },
+  "KYC_APPROVED": {
+    "subject": "KYC Approved",
+    "body": "Your KYC verification has been approved. You can now access all platform features."
+  },
+  "KYC_REJECTED": {
+    "subject": "KYC Rejected",
+    "body": "Your KYC verification has been rejected. Reason: {{reason}}. Please contact support."
+  },
+  "LOW_BALANCE": {
+    "subject": "Low Balance Alert",
+    "body": "Account {{accountCode}} balance ({{balance}} {{currency}}) is below the minimum threshold ({{minBalance}} {{currency}})."
+  }
+}
