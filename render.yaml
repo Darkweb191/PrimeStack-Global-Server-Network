@@ -32,10 +32,7 @@ services:
           name: primestack-postgres
           property: connectionString
       - key: REDIS_URL
-        fromService:
-          name: primestack-redis
-          type: redis
-          property: connectionString
+        value: redis://red-dbm99e2jnfac738q7rm0:6379
 
       # ── Auth / signing ────────────────────────────
       - key: JWT_SECRET
@@ -114,8 +111,3 @@ databases:
     plan: free
     region: oregon
 
-  - name: primestack-redis
-    type: redis
-    plan: free
-    region: oregon
-    ipAllowList: []

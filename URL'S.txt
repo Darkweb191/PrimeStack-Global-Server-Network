@@ -1,0 +1,3 @@
+Admin — where you move money ("admin want to pay")
+
+Page URL What it does Wallet Center `/admin/wallet-dashboard` This is the admin pay page — Wallet transfer, create wallet, fund, holds, beneficiaries, virtual accounts, escrow, statements & limits SWIFT Payout Draft `/admin/swift-payout-draft` International payout — generates the MT103 / SWIFT draft Command Center `/admin/dashboard` Overview, transactions, volumes Asset Gateway `/admin/pag-dashboard` Assets, routes, liquidity, compliance Intelligence `/admin/intelligence-dashboard` Analytics Governance `/admin/governance-dashboard` Change requests, DR, keys Developer Platform `/admin/developer-platform-dashboard` API keys, webhooks, partners
