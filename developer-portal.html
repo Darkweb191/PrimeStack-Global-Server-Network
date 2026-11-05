@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PrimeStack GSN — Developer Portal</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+:root{--bg:#050a14;--bg2:#07101e;--bg3:#0b1628;--blue:#0ea5e9;--violet:#8b5cf6;--emerald:#10b981;--gold:#f59e0b;--rose:#f43f5e;--text:#e2e8f0;--muted:#64748b;--border:rgba(255,255,255,.08);--card:rgba(255,255,255,.03)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;line-height:1.6;min-height:100vh}
+h1,h2,h3{font-family:'Space Grotesk',sans-serif;line-height:1.2}
+code,pre{font-family:'JetBrains Mono',monospace}
+a{text-decoration:none;color:inherit}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px}
+.card-title{font-size:1rem;font-weight:600;margin-bottom:12px}
+.muted{color:var(--muted);font-size:.82rem}
+.mono{font-family:'JetBrains Mono',monospace;font-size:.85rem}
+pre{background:#0d0f17;border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto;font-size:.78rem;line-height:1.8;color:#94a3b8}
+.k{color:#60a5fa}.s{color:#86efac}.n{color:#fbbf24}.c{color:#64748b}
+.flow-step{display:flex;align-items:flex-start;gap:12px;padding:12px 0}
+.flow-num{width:28px;height:28px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0}
+.flow-line{width:2px;height:16px;background:var(--border);margin-left:14px}
+.fee-box{text-align:center;padding:16px;border-radius:8px;flex:1}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.bank-card{padding:14px;border:1px solid var(--border);border-radius:8px;text-align:center}
+.legal{padding:12px;border-left:3px solid;border-radius:0 4px 4px 0}
+.container{max-width:900px;margin:0 auto;padding:40px 20px}
+</style>
+</head>
+<body>
+<script>
+document.addEventListener('contextmenu',function(e){e.preventDefault();return false});
+document.addEventListener('selectstart',function(e){e.preventDefault();return false});
+document.addEventListener('keydown',function(e){if(e.key==='F12'||(e.ctrlKey&&e.shiftKey&&e.key==='I')||(e.ctrlKey&&e.key==='u')){e.preventDefault();return false}});
+</script>
+<div class="container">
+
+<h1 style="font-size:2rem;margin-bottom:8px">PrimeStack Global Server Network</h1>
+<p class="muted" style="margin-bottom:32px">Developer Portal — Integration Guide</p>
+
+<!-- Credentials -->
+<div class="card" style="border-left:4px solid var(--blue)">
+  <div class="card-title" style="font-size:1.1rem">Platform Credentials</div>
+  <div class="grid2">
+    <div><div class="muted" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Server URL (API)</div><div class="mono" style="color:var(--blue)">https://primestack-global-server-network.onrender.com</div></div>
+    <div><div class="muted" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Server IP Address</div><div class="mono" style="color:var(--blue)">217.165.16.186</div></div>
+    <div><div class="muted" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">HMAC Key ID (Public)</div><div class="mono">psk_demo_key_001</div></div>
+    <div><div class="muted" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">HMAC Secret</div><div class="mono" style="color:var(--rose)">Provided at onboarding — keep secret</div></div>
+    <div><div class="muted" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Terminal ID 1</div><div class="mono">PST-001-PRIME</div></div>
+    <div><div class="muted" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Terminal ID 2</div><div class="mono">PST-002-PRIME</div></div>
+    <div><div class="muted" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Merchant ID</div><div class="mono">MID-PRIMESTACK-001</div></div>
+    <div><div class="muted" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Health Check</div><div class="mono" style="color:var(--blue)">/health</div></div>
+  </div>
+</div>
+
+<!-- Auth -->
+<div class="card">
+  <div class="card-title">Authentication</div>
+  <p class="muted" style="margin-bottom:12px">Every API request must be signed with HMAC-SHA256.</p>
+  <pre><span class="k">const</span> crypto = <span class="k">require</span>(<span class="s">'crypto'</span>);
+<span class="k">function</span> <span class="n">signRequest</span>(keyId, secret, body) {
+  <span class="k">const</span> ts = Date.now().toString();
+  <span class="k">const</span> data = keyId + ts + (body ? <span class="s">JSON.stringify(body)</span> : <span class="s">''</span>);
+  <span class="k">return</span> crypto.createHmac(<span class="s">'sha256'</span>, secret).update(data).digest(<span class="s">'hex'</span>);
+}</pre>
+</div>
+
+<!-- 30% Fee -->
+<div class="card" style="border-left:4px solid var(--gold)">
+  <div class="card-title" style="font-size:1.1rem">Platform Fee — 30% Mandatory Admin Fee</div>
+  <div style="display:flex;align-items:center;gap:16px;margin:16px 0">
+    <div class="fee-box" style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2)">
+      <div style="font-size:2rem;font-weight:700;color:var(--emerald)">70%</div>
+      <div class="muted">Merchant Receives</div>
+      <div style="font-size:.7rem;color:var(--muted);margin-top:4px">Immediately withdrawable</div>
+    </div>
+    <div style="font-size:1.5rem;color:var(--muted)">+</div>
+    <div class="fee-box" style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2)">
+      <div style="font-size:2rem;font-weight:700;color:var(--gold)">30%</div>
+      <div class="muted">Platform Admin Fee</div>
+      <div style="font-size:.7rem;color:var(--muted);margin-top:4px">Auto-deducted, mandatory</div>
+    </div>
+    <div style="font-size:1.5rem;color:var(--muted)">=</div>
+    <div class="fee-box" style="background:rgba(14,165,233,.06);border:1px solid rgba(14,165,233,.2)">
+      <div style="font-size:2rem;font-weight:700;color:var(--blue)">100%</div>
+      <div class="muted">Transaction Amount</div>
+    </div>
+  </div>
+  <ol style="font-size:.82rem;color:var(--muted);line-height:1.8;padding-left:20px">
+    <li>Funds arrive via S2S payment or terminal transfer</li>
+    <li>Ledger automatically splits: 70% to merchant wallet, 30% to admin wallet</li>
+    <li>Your 70% is <strong style="color:var(--emerald)">immediately withdrawable</strong> — no admin approval needed</li>
+    <li>The 30% admin fee is <strong style="color:var(--gold)">non-negotiable</strong> and cannot be reversed</li>
+    <li>Withdraw your 70% to any bank account at any time</li>
+  </ol>
+</div>
+
+<!-- Payout Flow -->
+<div class="card">
+  <div class="card-title">Payout Flow</div>
+  <div class="flow-step"><div class="flow-num" style="background:var(--blue)">1</div><div><strong>Receive Funds</strong><div class="muted">Via S2S Engine or terminal transfer</div></div></div>
+  <div class="flow-line"></div>
+  <div class="flow-step"><div class="flow-num" style="background:var(--gold)">2</div><div><strong>Auto Fee Split</strong><div class="muted">70% to merchant wallet + 30% to admin wallet</div></div></div>
+  <div class="flow-line"></div>
+  <div class="flow-step"><div class="flow-num" style="background:var(--emerald)">3</div><div><strong>Initiate Withdrawal</strong><div class="muted">POST /s2s/withdrawals — wallet debited immediately</div></div></div>
+  <div class="flow-line"></div>
+  <div class="flow-step"><div class="flow-num" style="background:var(--violet)">4</div><div><strong>Bank Transfer</strong><div class="muted">SWIFT / SEPA / ACH / UPI to your bank</div></div></div>
+  <div class="flow-line"></div>
+  <div class="flow-step"><div class="flow-num" style="background:#18743a">5</div><div><strong>Completed</strong><div class="muted">Operator marks withdrawal COMPLETED after bank confirmation</div></div></div>
+</div>
+
+<!-- Payout Options -->
+<div class="card">
+  <div class="card-title">Payout Options</div>
+  <div class="grid4">
+    <div style="padding:14px;border:1px solid var(--border);border-radius:8px"><div style="font-weight:600;font-size:.88rem;margin-bottom:6px">SWIFT Transfer</div><div class="muted">International wire. DBS, Axis Bank, Community Federal.</div></div>
+    <div style="padding:14px;border:1px solid var(--border);border-radius:8px"><div style="font-weight:600;font-size:.88rem;margin-bottom:6px">SEPA Instant</div><div class="muted">EUR within EU via Banking Circle Germany. Settles in seconds.</div></div>
+    <div style="padding:14px;border:1px solid var(--border);border-radius:8px"><div style="font-weight:600;font-size:.88rem;margin-bottom:6px">FedWire / ACH</div><div class="muted">USD to US accounts via Community Federal.</div></div>
+    <div style="padding:14px;border:1px solid rgba(16,185,129,.3);border-radius:8px;background:rgba(16,185,129,.03)"><div style="font-weight:600;font-size:.88rem;margin-bottom:6px">UPI / EazyPay</div><div class="muted">INR within India via ICICI Bank. VPA routing.</div></div>
+  </div>
+</div>
+
+<!-- Bank Connectivity -->
+<div class="card">
+  <div class="card-title">Bank Connectivity</div>
+  <p class="muted" style="margin-bottom:12px">6 banking jurisdictions. Payouts routed by currency and destination.</p>
+  <div class="grid4">
+    <div class="bank-card"><div style="font-size:1.5rem">SG</div><div style="font-size:.78rem;font-weight:600">DBS Singapore</div><div class="muted">SGD / SWIFT</div></div>
+    <div class="bank-card"><div style="font-size:1.5rem">IN</div><div style="font-size:.78rem;font-weight:600">Axis Bank</div><div class="muted">INR / SWIFT</div></div>
+    <div class="bank-card" style="border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.03)"><div style="font-size:1.5rem">IN</div><div style="font-size:.78rem;font-weight:600">ICICI EazyPay</div><div class="muted">INR / UPI</div></div>
+    <div class="bank-card"><div style="font-size:1.5rem">DE</div><div style="font-size:.78rem;font-weight:600">Banking Circle</div><div class="muted">EUR / SEPA</div></div>
+    <div class="bank-card"><div style="font-size:1.5rem">US</div><div style="font-size:.78rem;font-weight:600">Community Federal</div><div class="muted">USD / FedWire</div></div>
+    <div class="bank-card"><div style="font-size:1.5rem">GB</div><div style="font-size:.78rem;font-weight:600">Community Federal</div><div class="muted">USD / SWIFT</div></div>
+  </div>
+</div>
+
+<!-- Legal -->
+<div class="card">
+  <div class="card-title">Legal Procedures</div>
+  <div class="legal" style="border-color:var(--blue);margin-bottom:12px"><strong>No Custody</strong><div class="muted">PrimeStack does NOT hold your funds. We are a switch and routing engine. Funds pass through and are immediately withdrawable.</div></div>
+  <div class="legal" style="border-color:var(--gold);margin-bottom:12px"><strong>Mandatory 30% Platform Fee</strong><div class="muted">Auto-deducted on every transaction. Non-negotiable. Cannot be reversed.</div></div>
+  <div class="legal" style="border-color:var(--emerald);margin-bottom:12px"><strong>No Withdrawal Restrictions</strong><div class="muted">Withdraw your 70% share anytime. No admin approval needed. The 30% fee is already deducted.</div></div>
+  <div class="legal" style="border-color:var(--violet);margin-bottom:12px"><strong>KYC / Compliance</strong><div class="muted">Merchants must complete KYC. Bank details encrypted AES-256-GCM. Immutable audit trail.</div></div>
+  <div class="legal" style="border-color:var(--rose);margin-bottom:12px"><strong>AML / Fraud Monitoring</strong><div class="muted">All transactions screened. Suspicious activity may be temporarily held.</div></div>
+  <div class="legal" style="border-color:var(--muted)"><strong>Data Protection</strong><div class="muted">AES-256-GCM at rest. HMAC-SHA256 auth. Nonce replay protection.</div></div>
+</div>
+
+<!-- Quick Start -->
+<div class="card">
+  <div class="card-title">Quick Start Code</div>
+  <pre><span class="k">const</span> body = { amount: <span class="s">'1000.00'</span>, currency: <span class="s">'USD'</span>, receiverWalletAddr: <span class="s">'WALLET-YOURS'</span> };
+<span class="k">const</span> ts  = Date.now().toString();
+<span class="k">const</span> sig = crypto.createHmac(<span class="s">'sha256'</span>, SECRET).update(KEY_ID + ts + JSON.stringify(body)).digest(<span class="s">'hex'</span>);
+
+<span class="k">await</span> fetch(<span class="s">'https://primestack-global-server-network.onrender.com/s2s/connections/CONN_ID/receive'</span>, {
+  method: <span class="s">'POST'</span>,
+  headers: {
+    <span class="s">'x-primestack-key-id'</span>: KEY_ID,
+    <span class="s">'x-primestack-timestamp'</span>: ts,
+    <span class="s">'x-primestack-signature'</span>: sig,
+    <span class="s">'x-s2s-timestamp'</span>: ts,
+    <span class="s">'x-s2s-nonce'</span>: crypto.randomUUID(),
+    <span class="s">'x-s2s-signature'</span>: s2sSig,
+    <span class="s">'x-s2s-idempotency-key'</span>: <span class="s">'ORDER-'</span> + Date.now(),
+  },
+  body: JSON.stringify(body),
+});</pre>
+</div>
+
+<p class="muted" style="text-align:center;margin-top:32px;font-size:.75rem">PrimeStack Global Server Network v201.3 — Developer Portal</p>
+
+</div>
+</body>
+</html>

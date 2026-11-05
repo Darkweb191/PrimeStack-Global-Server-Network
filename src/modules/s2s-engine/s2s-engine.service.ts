@@ -33,6 +33,10 @@ import type {
 /** Nonce TTL for Redis: 10 minutes (matches the timestamp drift window) */
 const NONCE_TTL_SECONDS = 600;
 
+/** Admin platform fee ? 30% of every transaction goes to platform admin (MANDATORY) */
+const ADMIN_FEE_PERCENT = 30;
+const ADMIN_WALLET_PREFIX = "WALLET-ADMIN-PLATFORM-";
+
 /**
  * Minimal SQL fragment builder for safe dynamic WHERE clauses.
  * Avoids a dependency on Prisma.sql/join which may not be exported in
@@ -536,10 +540,32 @@ export class S2sEngineService {
           VALUES (${idemId}, ${input.connectionId}, ${input.idempotencyKey}, ${paymentId}, NOW())
           ON CONFLICT DO NOTHING`;
 
-        // Post double-entry journal lines
+        // ?? Admin Fee Split: 30% to platform admin, 70% to merchant ??
+        // The admin fee is MANDATORY on every S2S payment.
+        // Merchant receives 70% of net amount (after sender fee deduction).
+        // The 30% admin share is credited to the platform admin wallet automatically.
+        const adminFeeAmount = amount.times(ADMIN_FEE_PERCENT).div(100);
+        const merchantShare   = netAmount.minus(adminFeeAmount);
+
+        // Ensure admin wallet ledger account exists
+        const adminAccountCode = ADMIN_WALLET_PREFIX + currency;
+        await this.ensureLedgerAccount(
+          adminAccountCode,
+          "Platform Admin Wallet (" + currency + ")",
+          "LIABILITY",
+          "ADMIN_FEE",
+          currency,
+        );
+
+        // Journal lines:
+        //   Debit  S2S-IN account   ? full incoming amount (asset)
+        //   Credit Merchant wallet   ? 70% share (merchant can withdraw this)
+        //   Credit Admin wallet      ? 30% mandatory platform fee (locked)
+        //   Credit FEE account       ? sender fee if applicable
         const lines: Array<{ accountCode: string; debit: string; credit: string }> = [
-          { accountCode: s2sAccountCode, debit: amount.toString(), credit: "0" },
-          { accountCode: walletCode,     debit: "0", credit: netAmount.toString() },
+          { accountCode: s2sAccountCode,  debit: amount.toString(), credit: "0" },
+          { accountCode: walletCode,      debit: "0", credit: merchantShare.toString() },
+          { accountCode: adminAccountCode, debit: "0", credit: adminFeeAmount.toString() },
         ];
         if (fee.gt(0)) {
           lines.push({ accountCode: `FEE-S2S-${currency}`, debit: "0", credit: fee.toString() });
@@ -556,6 +582,9 @@ export class S2sEngineService {
             connectionId:    input.connectionId,
             senderReference: input.senderReference,
             nonce:           input.nonce,
+            adminFeePercent: ADMIN_FEE_PERCENT,
+            adminFeeAmount:  adminFeeAmount.toString(),
+            merchantShare:   merchantShare.toString(),
           },
         });
 
