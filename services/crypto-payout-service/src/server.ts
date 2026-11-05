@@ -1,4 +1,5 @@
 import { createServer, IncomingMessage, ServerResponse } from "http";
+import { createHmac } from "crypto";
 import { ConfigError, isConfigured, loadConfig } from "./config.js";
 import { broadcastTrc20, BroadcasterError, type BroadcastResult } from "./tron.js";
 
@@ -17,7 +18,13 @@ import { broadcastTrc20, BroadcasterError, type BroadcastResult } from "./tron.j
  */
 
 const PORT = parseInt(process.env.PORT ?? "4014", 10);
-const LEDGER_SERVICE_URL = (process.env.LEDGER_SERVICE_URL ?? "http://localhost:4001").replace(/\/+$/, "");
+
+// The ledger lives inside the Fastify API, which is closed by default: every
+// /ledger/* call must be HMAC-signed. We reuse the internal service key.
+const LEDGER_SERVICE_URL = (process.env.LEDGER_SERVICE_URL ?? "http://127.0.0.1:8081").replace(/\/+$/, "");
+const HMAC_KEY_ID = process.env.LEDGER_HMAC_KEY_ID ?? process.env.CONSOLE_HMAC_KEY_ID ?? "psk_console_001";
+const HMAC_SECRET = process.env.LEDGER_HMAC_SECRET ?? process.env.CONSOLE_HMAC_SECRET ?? "";
+const HMAC_PREFIX = process.env.HMAC_HEADER_PREFIX ?? "x-primestack";
 
 /** Supported asset + the networks we can actually sign for. */
 const SUPPORTED_ASSETS: Record<string, { networks: string[]; label: string }> = {
@@ -66,12 +73,32 @@ function fail(res: ServerResponse, status: number, code: string, message: string
 }
 
 // ── Ledger client ────────────────────────────────────────────
+//
+// Mirrors the console's signing contract against the Fastify API's auth
+// plugin: signature = HMAC-SHA256(secret, keyId + timestamp + body) with a
+// MILLISECOND timestamp, and body = "" for requests with no payload.
 
 interface LedgerEntryResult { entryId: string; reference: string }
 
+function ledgerHeaders(body: string): Record<string, string> {
+  const timestamp = String(Date.now());
+  const signature = createHmac("sha256", HMAC_SECRET)
+    .update(`${HMAC_KEY_ID}${timestamp}${body}`)
+    .digest("hex");
+  return {
+    "Content-Type": "application/json",
+    [`${HMAC_PREFIX}-key-id`]: HMAC_KEY_ID,
+    [`${HMAC_PREFIX}-timestamp`]: timestamp,
+    [`${HMAC_PREFIX}-signature`]: signature,
+  };
+}
+
 async function getLedgerBalance(accountNumber: string): Promise<number | null> {
   try {
-    const r = await fetch(`${LEDGER_SERVICE_URL}/accounts/${encodeURIComponent(accountNumber)}/balance`);
+    const r = await fetch(
+      `${LEDGER_SERVICE_URL}/ledger/accounts/${encodeURIComponent(accountNumber)}/balance`,
+      { headers: ledgerHeaders("") },
+    );
     if (!r.ok) return null;
     const j = (await r.json()) as { data?: { availableBalance?: string } };
     const raw = j.data?.availableBalance;
@@ -82,10 +109,11 @@ async function getLedgerBalance(accountNumber: string): Promise<number | null> {
 }
 
 async function postLedgerEntry(payload: object): Promise<LedgerEntryResult> {
-  const r = await fetch(`${LEDGER_SERVICE_URL}/entries`, {
+  const body = JSON.stringify(payload);
+  const r = await fetch(`${LEDGER_SERVICE_URL}/ledger/entries`, {
     method:  "POST",
-    headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify(payload),
+    headers: ledgerHeaders(body),
+    body,
   });
   const j = (await r.json()) as {
     success?: boolean;
@@ -178,8 +206,8 @@ async function handleWithdraw(res: ServerResponse, body: unknown): Promise<void>
       memo: b.memo ?? null, tag: b.tag ?? null,
     },
     lines: [
-      { accountId: `CRYPTO:${asset}`,        debit: amount, credit: "0" },
-      { accountId: `CRYPTO:PAYOUT:${asset}`, debit: "0",   credit: amount },
+      { accountCode: `CRYPTO:${asset}`,        debit: amount, credit: "0" },
+      { accountCode: `CRYPTO:PAYOUT:${asset}`, debit: "0",   credit: amount },
     ],
   };
 

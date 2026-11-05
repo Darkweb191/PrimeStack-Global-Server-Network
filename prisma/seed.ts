@@ -47,6 +47,40 @@ async function main() {
     console.log(`  ✓ ${acct.code}`);
   }
 
+  // ── 1b. Payment Rails Ledger Accounts ──────────
+  // Each incoming rails transfer posts two balanced entries:
+  //   WISE:INCOMING → RAILS:IN_TRANSIT (received, in flight)
+  //   RAILS:IN_TRANSIT → RAILS:PAYOUT_DISPATCHED (payout sent)
+  // WISE:INCOMING is an ASSET so the debit needs no pre-funded balance.
+  console.log("\nCreating payment rails ledger accounts...");
+
+  const railsCurrencies = ["USD", "GBP", "EUR", "AED", "NGN", "KES"];
+  const railsAccountSpecs = [
+    { prefix: "WISE:INCOMING",           name: "Wise Incoming",           type: "ASSET" as const,     subtype: "WISE_INCOMING" },
+    { prefix: "RAILS:IN_TRANSIT",        name: "Rails In Transit",        type: "LIABILITY" as const, subtype: "RAILS_TRANSIT" },
+    { prefix: "RAILS:PAYOUT_DISPATCHED", name: "Rails Payout Dispatched", type: "EXPENSE" as const,   subtype: "RAILS_PAYOUT" },
+    { prefix: "RAILS:UNMATCHED",         name: "Rails Unmatched",         type: "LIABILITY" as const, subtype: "RAILS_UNMATCHED" },
+  ];
+
+  for (const currency of railsCurrencies) {
+    for (const spec of railsAccountSpecs) {
+      const code = `${spec.prefix}:${currency}`;
+      await prisma.account.upsert({
+        where: { code },
+        update: {},
+        create: {
+          code,
+          name: `${spec.name} (${currency})`,
+          type: spec.type,
+          subtype: spec.subtype,
+          currency,
+          balance: 0,
+        },
+      });
+    }
+  }
+  console.log(`  ✓ ${railsAccountSpecs.length * railsCurrencies.length} rails ledger accounts (${railsCurrencies.join(", ")})`);
+
   // ── 2. Admin User ──────────────────────────────
   console.log("\nCreating admin user...");
 

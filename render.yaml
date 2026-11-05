@@ -83,6 +83,22 @@ services:
       - key: BANK_IN2_SWIFT_BIC
         value: ICICINBBCTS
 
+      # ── Wise rails (fiat receiving + virtual IBANs) ───
+      # Fill the three secrets in the Render dashboard — they are not stored
+      # in this blueprint. Without them the rails service stays in simulation.
+      - key: WISE_ENV
+        value: live
+      - key: WISE_API_KEY
+        sync: false
+      - key: WISE_PROFILE_ID
+        sync: false
+      - key: WISE_WEBHOOK_SECRET
+        sync: false
+      - key: RAILS_PORT
+        value: 8082
+      - key: RAILS_PAYOUT_DELAY_MS
+        value: 0
+
   # Static documentation site — unchanged, served from ./docs.
   - type: static
     name: primestack-website

@@ -260,6 +260,6 @@ RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN NEW.updated_at = NOW(); RETURN NEW; END;
 $$;
 
-CREATE TRIGGER trg_connections_updated ON connections    BEFORE UPDATE FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-CREATE TRIGGER trg_routes_updated      ON routes         BEFORE UPDATE FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-CREATE TRIGGER trg_rules_updated       ON routing_rules  BEFORE UPDATE FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE TRIGGER trg_connections_updated BEFORE UPDATE ON connections    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE TRIGGER trg_routes_updated      BEFORE UPDATE ON routes         FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE TRIGGER trg_rules_updated       BEFORE UPDATE ON routing_rules  FOR EACH ROW EXECUTE FUNCTION set_updated_at();

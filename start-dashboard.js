@@ -7896,13 +7896,12 @@ function railsPage() {
 <div id="rl-setup" class="tab-pane" data-g="rl">
 <div class="grid-2" style="gap:16px;margin-top:16px;align-items:start">
   <div><div class="card"><div class="card-title">Rails Service Status</div><pre class="result" id="rl-svc-result" style="max-height:200px">Click check…</pre><button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="rlCheckService()">Check</button></div>
-  <div class="card" style="margin-top:12px"><div class="card-title">Start Service</div><pre style="background:var(--bg);padding:12px;border-radius:8px;font-size:.75rem;font-family:monospace;border:1px solid var(--border)">node rails-service.js</pre><div style="font-size:.78rem;color:var(--text2);margin-top:8px">Register webhook in Wise → event: <code>incoming-transfer#credited</code></div></div></div>
-  <div class="card"><div class="card-title">Required .env Variables</div><pre style="background:var(--bg);padding:14px;border-radius:8px;font-size:.75rem;font-family:monospace;border:1px solid var(--border);line-height:1.8">WISE_API_KEY=your_api_token
+  <div class="card" style="margin-top:12px"><div class="card-title">Service Startup</div><pre style="background:var(--bg);padding:12px;border-radius:8px;font-size:.75rem;font-family:monospace;border:1px solid var(--border)">node start-platform.mjs   # API + rails + console</pre><div style="font-size:.78rem;color:var(--text2);margin-top:8px">Register the webhook in Wise → event: <code>incoming-transfer#credited</code><br>URL: <code>https://&lt;your-host&gt;/api/rails/webhook</code></div></div></div>
+  <div class="card"><div class="card-title">Required Environment Variables</div><pre style="background:var(--bg);padding:14px;border-radius:8px;font-size:.75rem;font-family:monospace;border:1px solid var(--border);line-height:1.8">WISE_API_KEY=your_api_token
 WISE_PROFILE_ID=your_profile_id
 WISE_ENV=live
 WISE_WEBHOOK_SECRET=from_wise_dashboard
-DASHBOARD_URL=http://localhost:8081
-RAILS_PORT=8082</pre></div>
+RAILS_PORT=8082</pre><div style="font-size:.78rem;color:var(--text2);margin-top:8px">Virtual IBANs are issued in your Wise business profile, then registered here as customers (Wise IBAN / account number) so incoming credits can be matched and forwarded.</div></div>
 </div>
 </div>
 

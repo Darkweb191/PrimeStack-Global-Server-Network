@@ -237,7 +237,7 @@ CREATE TABLE IF NOT EXISTS recon_records (
 );
 
 CREATE INDEX idx_recon_date       ON recon_records(business_date, recon_status);
-CREATE INDEX idx_recon_status     ON recon_records(recon_status);
+CREATE INDEX idx_recon_records_status ON recon_records(recon_status);
 CREATE INDEX idx_recon_participant ON recon_records(participant_code);
 
 -- ── Reconciliation Exceptions ─────────────────────────────────

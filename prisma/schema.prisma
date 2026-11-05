@@ -1935,3 +1935,64 @@ model S2sReceiptTemplate {
   @@unique([merchantId, name])
   @@index([merchantId])
 }
+
+// ──────────────────────────────────────────────
+// PAYMENT RAILS (Wise pass-through)
+// ──────────────────────────────────────────────
+
+enum RailsTransactionStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+  UNMATCHED
+}
+
+/// A customer registered on the rails: owns a Wise virtual IBAN and a real
+/// bank account that incoming funds are forwarded to. The rails never hold a
+/// balance — this row is routing metadata only.
+model RailsCustomer {
+  id                String    @id // "CUST-000001"
+  name              String
+  email             String
+  phone             String?
+  wiseIBAN          String?
+  wiseAccountNumber String?
+  bankDetails       Json
+  totalReceived     Decimal   @default(0) @db.Decimal(20, 4)
+  transactionCount  Int       @default(0)
+  lastTransactionAt DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  transactions RailsTransaction[]
+
+  @@index([email])
+  @@index([wiseIBAN])
+  @@index([wiseAccountNumber])
+}
+
+/// One incoming Wise credit and the payout it triggered. `eventId` is the
+/// idempotency key — a webhook replay can never dispatch a second payout.
+model RailsTransaction {
+  id            String                @id // "RAILS-<ts>-<suffix>"
+  eventId       String                @unique
+  transferId    String
+  status        RailsTransactionStatus @default(PROCESSING)
+  customerId    String?
+  customer      RailsCustomer?        @relation(fields: [customerId], references: [id])
+  inAmount      Decimal?              @db.Decimal(20, 4)
+  inCurrency    String?
+  senderName    String?
+  senderAccount String?
+  payoutRef     String?
+  payoutStatus  String?
+  error         String?
+  metadata      Json?
+  receivedAt    DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  @@index([status])
+  @@index([transferId])
+  @@index([customerId])
+  @@index([receivedAt])
+}

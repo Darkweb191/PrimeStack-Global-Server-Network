@@ -51,16 +51,6 @@ CREATE USER audit_svc WITH PASSWORD 'audit_secret';
 CREATE DATABASE primestack_audit OWNER audit_svc;
 GRANT CONNECT ON DATABASE primestack_audit TO audit_svc;
 
--- Settlement Service
-CREATE USER settlement_svc WITH PASSWORD 'settlement_secret';
-CREATE DATABASE primestack_settlement OWNER settlement_svc;
-GRANT CONNECT ON DATABASE primestack_settlement TO settlement_svc;
-
--- Notification Service
-CREATE USER notification_svc WITH PASSWORD 'notification_secret';
-CREATE DATABASE primestack_notification OWNER notification_svc;
-GRANT CONNECT ON DATABASE primestack_notification TO notification_svc;
-
 -- Switch Core Service
 CREATE USER switch_svc WITH PASSWORD 'switch_secret';
 CREATE DATABASE primestack_switch OWNER switch_svc;
