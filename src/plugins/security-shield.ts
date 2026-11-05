@@ -2,6 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import fp from "fastify-plugin";
 import { redis } from "../core/redis.js";
 import { AppError, ForbiddenError, RateLimitError } from "../core/errors.js";
+import { config } from "../config/index.js";
 import { logger } from "../core/logger.js";
 
 /**
@@ -259,4 +260,3 @@ export const securityShieldPlugin = fp(async (app: FastifyInstance) => {
   logger.info("Security Shield active ? 7 layers enabled");
 });
 
-import { config } from "../config/index.js";
