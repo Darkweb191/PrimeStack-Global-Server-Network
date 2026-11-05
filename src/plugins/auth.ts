@@ -63,14 +63,12 @@ export async function hmacAuthPlugin(app: FastifyInstance): Promise<void> {
     const signature = request.headers[`${prefix}-signature`] as string | undefined;
 
     if (!keyId || !timestamp || !signature) {
-      await recordAuthFailure(request.ip, "missing-hmac-headers");
       throw new UnauthorizedError("Missing HMAC authentication headers");
     }
 
     // Validate timestamp freshness
     const ts = parseInt(timestamp, 10);
     if (isNaN(ts) || Date.now() - ts > MAX_TIMESTAMP_DRIFT_MS) {
-      await recordAuthFailure(request.ip, "timestamp-expired");
       throw new HmacSignatureError("Timestamp expired or invalid");
     }
 
@@ -81,11 +79,9 @@ export async function hmacAuthPlugin(app: FastifyInstance): Promise<void> {
     });
 
     if (!hmacKey) {
-      await recordAuthFailure(request.ip, "unknown-key-id:" + keyId);
       throw new HmacSignatureError("Unknown key ID");
     }
     if (!hmacKey.merchant) {
-      await recordAuthFailure(request.ip, "no-merchant:" + keyId);
       throw new HmacSignatureError("Key is not associated with a merchant");
     }
 
@@ -100,12 +96,8 @@ export async function hmacAuthPlugin(app: FastifyInstance): Promise<void> {
 
     if (sigBuffer.length !== expBuffer.length || !timingSafeEqual(sigBuffer, expBuffer)) {
       logger.warn({ keyId, ip: request.ip }, "HMAC signature mismatch");
-      await recordAuthFailure(request.ip, "signature-mismatch:" + keyId);
       throw new HmacSignatureError("Signature does not match");
     }
-
-    // Clear auth failures on success
-    await clearAuthFailures(request.ip);
 
     // Attach merchant context
     request.merchant = {
