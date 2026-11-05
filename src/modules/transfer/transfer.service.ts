@@ -352,13 +352,30 @@ export class TransferService {
       }
 
       case "TERMINAL": {
+        // Look up by TID (terminal identifier like "PST-001-PRIME") OR by UUID
         const terminal = await this.prisma.terminal.findUnique({
+          where: { tid: entityId },
+        }) ?? await this.prisma.terminal.findUnique({
           where: { id: entityId },
         });
         if (!terminal) {
           throw new NotFoundError("Terminal", entityId);
         }
-        return `TERMINAL-${terminal.tid}-${currency}`;
+        // Ensure the terminal has a linked ledger account ? create if missing
+        const accountCode = `TERMINAL-${terminal.tid}-${currency}`;
+        const existingAcct = await this.ledgerService.getAccount(accountCode);
+        if (!existingAcct) {
+          await this.ledgerService.createAccount({
+            code: accountCode,
+            name: `Terminal: ${terminal.tid} (${currency})`,
+            type: "ASSET",
+            subtype: "TERMINAL",
+            currency,
+            metadata: { terminalId: terminal.tid, merchantId: terminal.merchantId },
+          });
+          logger.info({ accountCode, tid: terminal.tid }, "Created terminal ledger account");
+        }
+        return accountCode;
       }
 
       case "BANK": {
