@@ -123,8 +123,8 @@ export function registerT2tRoutes(app: FastifyInstance): void {
       await prisma.$executeRaw`UPDATE "Account" SET balance = balance + ${amount}, "updatedAt" = NOW() WHERE code = ${destAcct}`;
 
       // Get new balances
-      const srcBal = await prisma.$queryRaw<{balance: Decimal}[]>`SELECT balance FROM "Account" WHERE code = ${sourceAcct}`;
-      const dstBal = await prisma.$queryRaw<{balance: Decimal}[]>`SELECT balance FROM "Account" WHERE code = ${destAcct}`;
+      const srcBal = await prisma.$queryRaw<{balance: any}[]>`SELECT balance FROM "Account" WHERE code = ${sourceAcct}`;
+      const dstBal = await prisma.$queryRaw<{balance: any}[]>`SELECT balance FROM "Account" WHERE code = ${destAcct}`;
 
       logger.info({ reference, sourceTid, destTid, amount }, "T2T transfer completed");
 
@@ -153,7 +153,7 @@ export function registerT2tRoutes(app: FastifyInstance): void {
   app.get("/t2t/balance/:tid", async (request: FastifyRequest, reply: FastifyReply) => {
     const { tid } = request.params as { tid: string };
     const accountCode = "TERMINAL-" + tid + "-USD";
-    const rows = await prisma.$queryRaw<{balance: Decimal; currency: string}[]>`SELECT balance, currency FROM "Account" WHERE code = ${accountCode}`;
+    const rows = await prisma.$queryRaw<{balance: any; currency: string}[]>`SELECT balance, currency FROM "Account" WHERE code = ${accountCode}`;
     if (!rows.length) {
       return sendSuccess(reply, { terminalId: tid, balance: "0", currency: "USD" });
     }
