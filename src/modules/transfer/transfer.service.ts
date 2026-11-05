@@ -353,7 +353,7 @@ export class TransferService {
 
       case "TERMINAL": {
         // Look up by TID (terminal identifier like "PST-001-PRIME") OR by UUID
-        const terminal = await this.prisma.terminal.findUnique({
+        let terminal = await this.prisma.terminal.findUnique({
           where: { tid: entityId },
         }) ?? await this.prisma.terminal.findUnique({
           where: { id: entityId },
