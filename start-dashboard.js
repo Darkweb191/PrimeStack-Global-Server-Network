@@ -8,6 +8,10 @@ import { dashboardLocalizationScript } from './dashboard-localization.js';
 
 const PRODUCT_GUIDE_HTML = readFileSync(new URL('./product-guide.html', import.meta.url), 'utf8');
 
+// Base URL the browser-side pages call for API requests.
+// Set API_URL on Render to the deployed API service origin.
+const API_URL = process.env.API_URL || 'http://localhost:8081';
+
 // --- Service Port Map -------------------------------------------------------
 const SVC = {
   ledger:       4001,
@@ -428,8 +432,7 @@ function svgIcon(name) {
 function sidebar(active) {
   const link = (href, label, icon) => {
     const cls = active === href ? ' active' : '';
-    const guideHref = `/platform/guide?page=${encodeURIComponent(href)}`;
-    return `<a href="${guideHref}" target="_blank" rel="noopener" aria-label="Read the ${label} guide in a new tab" class="nav-item${cls}">${icon}<span>${label}</span></a>`;
+    return `<a href="${href}" class="nav-item${cls}">${icon}<span>${label}</span></a>`;
   };
   return `
 <nav class="sidebar" aria-label="Main navigation">
@@ -507,7 +510,7 @@ function sidebar(active) {
     activate(selected,false);
   })();
   </script>
-  <div class="sidebar-footer">PrimeStack Global Server Network v201.3 — <a href="/platform/monitoring" style="color:var(--accent);text-decoration:none">14 services</a></div>
+  <div class="sidebar-footer">PrimeStack Global Server Network v201.3 — <a href="/platform/monitoring" style="color:var(--accent);text-decoration:none">14 services</a> · <a href="/platform/guide" style="color:var(--accent);text-decoration:none">Instructions</a></div>
 </nav>`;
 }
 
@@ -517,7 +520,7 @@ function page(title, active, content) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<script>window.__API_URL__="http://localhost:8081";</script>
+<script>window.__API_URL__=${JSON.stringify(API_URL)};</script>
 <title>${title} — PrimeStack</title>
 ${CSS}
 </head>
@@ -540,78 +543,76 @@ function landingPage() {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PrimeStack — Global Server Network &amp; Asset Gateway</title>
+<script>window.__API_URL__=${JSON.stringify(API_URL)};</script>
+<title>PrimeStack — Console</title>
 ${CSS}
 <style>
-.landing{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;background:var(--bg)}
-.landing-hero{text-align:center;max-width:560px}
-.landing-logo{display:flex;align-items:center;justify-content:center;gap:7px;font-size:2.1rem;font-weight:700;letter-spacing:-.045em;color:var(--text);margin-bottom:4px}
-.landing-logo span{color:var(--accent)}
-.landing-logo .landing-mark{display:grid;place-items:center;width:34px;height:34px;margin-right:3px;border-radius:9px;background:var(--accent);color:#fff}
-.landing-logo .landing-mark svg{width:21px;height:21px}
-.landing-tagline{font-size:1rem;color:var(--text2);margin-top:8px;line-height:1.6}
-.landing-version{display:inline-block;margin-top:12px;padding:3px 10px;border-radius:99px;background:var(--accent-bg);color:var(--accent);font-size:.74rem;font-weight:600;border:1px solid var(--accent-border)}
+.launch{padding:0 28px 44px;max-width:1040px}
+.launch-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+.launch-tile{background:var(--surf);border:1px solid var(--border);border-radius:var(--radius);padding:20px;display:flex;flex-direction:column;box-shadow:inset 3px 0 0 #005ea2}
+.launch-tile h2{font-family:"Source Serif 4",Georgia,serif;font-size:1rem;font-weight:700;margin-bottom:4px}
+.launch-tile p{font-size:.8rem;color:var(--muted);line-height:1.55;margin-bottom:16px}
+.launch-list{display:flex;flex-direction:column;gap:5px;border-top:1px solid var(--border);padding-top:12px;margin-top:auto}
+.launch-list a{font-size:.78rem;font-weight:600;color:var(--accent);text-decoration:none}
+.launch-list a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
-<div class="landing">
-  <div class="landing-hero">
-    <div class="landing-logo"><span class="landing-mark">${svgIcon('grid')}</span>Prime<span>Stack Global Payment Network</span></div>
-    <div class="landing-tagline" style="font-size:1rem;color:var(--text2);margin-top:4px;letter-spacing:.5px;font-weight:600;text-transform:uppercase">PRIMESTACK GLOBAL SERVER NETWORK</div>
-    <div class="landing-tagline">Live international global server network &mdash; ISO 20022 CBPR+, SWIFT GPI, SEPA, Fedwire.<br>Receiving banks: USA &bull; Germany &bull; Singapore &bull; India &bull; UK</div>
-    <div class="landing-version">v201.3 — PrimeStack Global Server Network</div>
-  </div>
-  <div class="portal-grid" style="max-width:900px;width:100%;margin-top:40px">
-    <a href="/platform" class="portal-card">
-      <div class="portal-icon blue">${svgIcon('grid')}</div>
-      <h3>Platform Admin</h3>
-      <p>Bank connections, IP whitelisting, settlement runs, risk engine, and full service monitoring across all 14 microservices.</p>
-      <div class="portal-links">
-        <a href="/platform/banks" class="portal-link">${svgIcon('bank')} Bank Connections</a>
-        <a href="/platform/monitoring" class="portal-link">${svgIcon('monitor')} Service Monitoring</a>
-        <a href="/platform/settlement" class="portal-link">${svgIcon('settlement')} Settlement</a>
+<div class="page-header">
+  <h1>PrimeStack Global Server Network</h1>
+  <p>Select a console to continue.</p>
+</div>
+<div class="launch">
+  <div class="launch-grid">
+    <div class="launch-tile">
+      <h2>Platform Admin</h2>
+      <p>Bank connections, IP whitelisting, settlement runs, risk engine, and service monitoring.</p>
+      <a class="btn btn-primary btn-sm" href="/platform">Open Platform Admin</a>
+      <div class="launch-list" style="margin-top:14px">
+        <a href="/platform/banks">Bank Connections</a>
+        <a href="/platform/receive-funds">Receive Funds</a>
+        <a href="/platform/server-funds">Server Funds</a>
+        <a href="/platform/settlement">Settlement</a>
+        <a href="/platform/risk">Risk Engine</a>
+        <a href="/platform/monitoring">Service Monitoring</a>
       </div>
-    </a>
-    <a href="/merchant" class="portal-card">
-      <div class="portal-icon green">${svgIcon('wallet')}</div>
-      <h3>Merchant Portal</h3>
-      <p>Send transfers, manage payouts, view balances, configure terminals, and manage API keys for your integration.</p>
-      <div class="portal-links">
-        <a href="/merchant/send" class="portal-link">${svgIcon('send')} Send Money</a>
-        <a href="/merchant/balance" class="portal-link">${svgIcon('history')} Balance &amp; History</a>
-        <a href="/merchant/terminals" class="portal-link">${svgIcon('terminal')} Terminals</a>
+    </div>
+    <div class="launch-tile">
+      <h2>Merchant Portal</h2>
+      <p>Send transfers, run T2T, manage payouts, view balances, configure terminals, and manage API keys.</p>
+      <a class="btn btn-primary btn-sm" href="/merchant">Open Merchant Portal</a>
+      <div class="launch-list" style="margin-top:14px">
+        <a href="/merchant/send">Send Money</a>
+        <a href="/merchant/t2t">T2T Engine</a>
+        <a href="/merchant/payout">Payout</a>
+        <a href="/merchant/balance">Balance &amp; History</a>
+        <a href="/merchant/terminals">Terminals</a>
+        <a href="/merchant/terminal-register">Terminal Registration</a>
+        <a href="/merchant/payment-link">Payment Links</a>
+        <a href="/merchant/wallet">My Wallet</a>
+        <a href="/merchant/keys">API Keys</a>
       </div>
-    </a>
-    <a href="/ops" class="portal-card">
-      <div class="portal-icon purple">${svgIcon('network')}</div>
-      <h3>Operations Hub</h3>
+    </div>
+    <div class="launch-tile">
+      <h2>Operations Hub</h2>
       <p>Terminal management, network configuration, HMAC/API key administration, and ISO 8583 message testing.</p>
-      <div class="portal-links">
-        <a href="/ops/terminals" class="portal-link">${svgIcon('terminal')} Terminal Ops</a>
-        <a href="/ops/network" class="portal-link">${svgIcon('key')} Network &amp; Keys</a>
-        <a href="/ops/iso8583" class="portal-link">${svgIcon('iso')} ISO 8583 Test</a>
+      <a class="btn btn-primary btn-sm" href="/ops">Open Operations Hub</a>
+      <div class="launch-list" style="margin-top:14px">
+        <a href="/ops/terminals">Terminal Ops</a>
+        <a href="/ops/network">Network &amp; Keys</a>
+        <a href="/ops/iso8583">ISO 8583 Test</a>
       </div>
-    </a>
+    </div>
   </div>
 
-  <!-- Live Receiving Banks Strip -->
-  <div style="max-width:900px;width:100%;margin-top:28px">
-    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px;text-align:center">Live Receiving Banks — LOUIS CALTEN INTERNATIONAL LLP</div>
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px">
-      ${[
-        {flag:'🇺🇸',country:'USA',bank:'Community Federal Savings Bank',acct:'8335373337',ccy:'USD',bic:'—'},
-        {flag:'🇩🇪',country:'Germany',bank:'Banking Circle',acct:'DE96 2022 0800 0029 3844 95',ccy:'EUR',bic:'SXPYDEHH'},
-        {flag:'🇸🇬',country:'Singapore',bank:'DBS Bank Limited',acct:'885414256581',ccy:'SGD',bic:'DBSSSGSG'},
-        {flag:'🇮🇳',country:'India',bank:'Axis Bank Ltd',acct:'923020066384179',ccy:'INR',bic:'AXISINBBA89'},
-        {flag:'🇬🇧',country:'UK',bank:'Community Federal Savings Bank',acct:'8335373337',ccy:'USD',bic:'—'},
-      ].map(b => `
-      <a href="/merchant/wallet" style="background:var(--surf);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-decoration:none;color:inherit;display:block;transition:transform 120ms" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-        <div style="font-size:20px;margin-bottom:6px">${b.flag}</div>
-        <div style="font-size:10px;font-weight:700;color:var(--text);margin-bottom:2px">${b.country}</div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:6px">${b.bank}</div>
-        <div style="font-family:monospace;font-size:9px;color:var(--accent);margin-bottom:2px">${b.acct.length > 16 ? b.acct.slice(0,16)+'…' : b.acct}</div>
-        <span style="background:var(--success-bg);color:var(--success);font-size:8px;font-weight:700;padding:2px 6px;border-radius:4px;letter-spacing:.5px">${b.ccy} LIVE</span>
-      </a>`).join('')}
+  <div class="card" style="margin-top:20px">
+    <div class="card-header" style="margin-bottom:8px">
+      <div class="card-title">${svgIcon('audit')} Instructions</div>
+    </div>
+    <p style="font-size:.8rem;color:var(--muted);line-height:1.6;margin-bottom:14px">Setup steps, credentials and operating procedures for every console.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a class="btn btn-primary btn-sm" href="/platform/guide">Open User Guide</a>
+      <a class="btn btn-ghost btn-sm" href="/platform/bank-guide">Bank Integration Guide</a>
     </div>
   </div>
 </div>
