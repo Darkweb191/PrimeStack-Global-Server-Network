@@ -22,7 +22,7 @@ export async function errorHandlerPlugin(app: FastifyInstance): Promise<void> {
     // Zod validation errors
     if (error instanceof ZodError) {
       const message = request.t
-        ? request.t("errors.VALIDATION_ERROR", { message: error.errors.map((e) => e.message).join(", ") })
+        ? request.t("errors:VALIDATION_ERROR", { message: error.errors.map((e) => e.message).join(", ") })
         : `Validation failed: ${error.errors.map((e) => e.message).join(", ")}`;
 
       return reply.status(422).send({
@@ -39,7 +39,7 @@ export async function errorHandlerPlugin(app: FastifyInstance): Promise<void> {
     if (error instanceof AppError) {
       // Attempt i18n translation of the error code
       const message = request.t
-        ? request.t(`errors.${error.code}`, error.details as Record<string, unknown>) ||
+        ? request.t(`errors:${error.code}`, error.details as Record<string, unknown>) ||
           error.message
         : error.message;
 
@@ -56,7 +56,7 @@ export async function errorHandlerPlugin(app: FastifyInstance): Promise<void> {
     // Unknown errors — log and return generic 500
     logger.error({ err: error, path: request.url, method: request.method }, "Unhandled error");
 
-    const message = request.t ? request.t("errors.INTERNAL_ERROR") : "An internal error occurred";
+    const message = request.t ? request.t("errors:INTERNAL_ERROR") : "An internal error occurred";
 
     return reply.status(500).send({
       success: false,
@@ -70,7 +70,7 @@ export async function errorHandlerPlugin(app: FastifyInstance): Promise<void> {
   // Handle 404 for unmatched routes
   app.setNotFoundHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const message = request.t
-      ? request.t("errors.NOT_FOUND", { resource: "Route" })
+      ? request.t("errors:NOT_FOUND", { resource: "Route" })
       : "Route not found";
 
     return reply.status(404).send({

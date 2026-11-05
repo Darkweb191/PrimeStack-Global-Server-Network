@@ -10,7 +10,7 @@ import { resolveLanguage, i18next, getTranslator } from "../core/i18n.js";
  *   3. Default language from config
  *
  * Usage in routes:
- *   request.t('errors.NOT_FOUND', { resource: 'Terminal' })
+ *   request.t('errors:NOT_FOUND', { resource: 'Terminal' })
  *   request.lang // resolved language code, e.g. "fr"
  */
 declare module "fastify" {
