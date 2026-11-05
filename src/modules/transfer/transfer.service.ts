@@ -359,7 +359,23 @@ export class TransferService {
           where: { id: entityId },
         });
         if (!terminal) {
-          throw new NotFoundError("Terminal", entityId);
+          // EXTERNAL TERMINAL: auto-create if not found in database
+          // This allows any terminal worldwide to send T2T transfers to our platform
+          logger.info({ tid: entityId, currency }, "External terminal not found - auto-creating");
+          const merchant = await this.prisma.merchant.findFirst({ where: { status: "ACTIVE" } });
+          if (!merchant) throw new NotFoundError("Merchant", "active merchant");
+          terminal = await this.prisma.terminal.create({
+            data: {
+              tid: entityId,
+              serialNumber: "EXT-" + entityId + "-" + Date.now(),
+              merchantId: merchant.id,
+              model: "External Terminal",
+              location: "External / International",
+              country: "XX",
+              status: "ACTIVE",
+            },
+          });
+          logger.info({ tid: entityId, id: terminal.id }, "External terminal auto-created");
         }
         // Ensure the terminal has a linked ledger account ? create if missing
         const accountCode = `TERMINAL-${terminal.tid}-${currency}`;
