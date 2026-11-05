@@ -3,7 +3,6 @@ import { AdminService } from "./admin.service.js";
 import { loginSchema, createUserSchema, updateUserSchema, updateKycSchema } from "./types.js";
 import { sendSuccess, sendCreated, sendPaginated, parsePagination } from "../../shared/utils/response.js";
 import { ValidationError } from "../../core/errors.js";
-import { registerAdminPages } from "./admin-pages.js";
 
 /**
  * Admin REST routes — JWT protected.
@@ -140,7 +139,4 @@ export function registerAdminRoutes(
     const updated = await adminService.updateKyc(merchantId, parsed.data, authUser.id);
     return sendSuccess(reply, updated);
   });
-
-  // ── HTML Pages (public, no JWT required) ───────────
-  registerAdminPages(app);
 }
