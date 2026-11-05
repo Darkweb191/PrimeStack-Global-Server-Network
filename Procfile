@@ -1,2 +1,1 @@
-web: npm run start
-dashboard: node start-dashboard.js
+web: node start-platform.mjs

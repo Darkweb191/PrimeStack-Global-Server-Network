@@ -2,7 +2,8 @@
 // Node.js HTTP server, no framework, no external deps
 import { createServer } from 'http';
 import { request as httpRequest } from 'http';
-import { randomUUID } from 'crypto';
+import { request as httpsRequest } from 'https';
+import { randomUUID, createHmac, timingSafeEqual } from 'crypto';
 import { readFileSync } from 'fs';
 import { dashboardLocalizationScript } from './dashboard-localization.js';
 
@@ -30,6 +31,26 @@ const SVC = {
   crypto:       4014,
   gateway:      8080,
 };
+
+// ── Single upstream API ─────────────────────────────────────────────────────
+// The PrimeStack Fastify API (src/) runs inside this same service on an internal
+// port. Every console /api/* call is proxied there. The SVC port map above is
+// retained only as the display list for the health panel.
+const API_ORIGIN = process.env.PRIMESTACK_API_URL || process.env.INTERNAL_API_URL || 'http://127.0.0.1:8081';
+
+// Payment rails service (rails-service.js) — runs alongside the API in this service.
+const RAILS_ORIGIN = process.env.RAILS_SERVICE_URL || `http://127.0.0.1:${process.env.RAILS_PORT || 8082}`;
+
+// Console operator HMAC credentials — sign proxied API calls so the
+// closed-by-default API accepts them. Created by prisma/seed.ts.
+const CONSOLE_HMAC_KEY_ID = process.env.CONSOLE_HMAC_KEY_ID || 'psk_console_001';
+const CONSOLE_HMAC_SECRET = process.env.CONSOLE_HMAC_SECRET || '';
+const HMAC_HEADER_PREFIX = process.env.HMAC_HEADER_PREFIX || 'x-primestack';
+
+// JWT secret shared with the API — verifies the operator session cookie.
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
+const SESSION_COOKIE = 'ps_console_token';
+const SESSION_TTL_SECONDS = 60 * 60 * 12;
 
 // Live receiving bank accounts — LOUIS CALTEN INTERNATIONAL LLP
 const banks = [
@@ -452,9 +473,7 @@ function sidebar(active) {
     ${link('/platform/receive-funds','Receive Funds','<svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M2 8h8m0 0L7 5m3 3L7 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="10" y="3" width="4" height="10" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>')}
     ${link('/platform/server-funds','Server Funds','<svg width="14" height="14" fill="none" viewBox="0 0 16 16"><ellipse cx="8" cy="4" rx="6" ry="2" stroke="currentColor" stroke-width="1.5"/><path d="M2 4v4c0 1.1 2.7 2 6 2s6-.9 6-2V4M2 8v4c0 1.1 2.7 2 6 2s6-.9 6-2V8" stroke="currentColor" stroke-width="1.5"/></svg>')}
     ${link('/platform/s2s-engine','S2S Engine','<svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M2 8h9M8 5l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="3" cy="8" r="1.5" fill="currentColor"/></svg>', active)}
-    ${link('/platform/s2s-engine','S2S Engine','<svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M2 8h9M8 5l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="3" cy="8" r="1.5" fill="currentColor"/></svg>', active)}
     ${link('/platform/rails','Payment Rails','<svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M1 4h14M1 12h14M4 1v14M12 1v14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>')}
-    ${link('/platform/bank-guide','Bank Integration Guide','<svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M1 5h14L8 2 1 5zM2 6v6m4-6v6m4-6v6m4-6v6M1 13h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>')}
     ${link('/platform/whitelist','IP Whitelist','<svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M8 1L2 4v4c0 3.5 2.6 6.7 6 7.5C11.4 14.7 14 11.5 14 8V4L8 1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>')}
     ${link('/platform/settlement','Settlement','<svg width="14" height="14" fill="none" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M2 7h12M5 3v2M11 3v2" stroke="currentColor" stroke-width="1.5"/></svg>')}
     ${link('/platform/risk','Risk Engine','<svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M8 1.5L1.5 5v6L8 14.5 14.5 11V5L8 1.5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 6v3M8 10.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>')}
@@ -611,7 +630,7 @@ ${CSS}
     </div>
     <p style="font-size:.8rem;color:var(--muted);line-height:1.6;margin-bottom:14px">Setup steps, credentials and operating procedures for every console.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <a class="btn btn-primary btn-sm" href="/platform/guide">Open User Guide</a>
+      <a class="btn btn-ghost btn-sm" href="/platform/guide">Open User Guide</a>
       <a class="btn btn-ghost btn-sm" href="/platform/bank-guide">Bank Integration Guide</a>
     </div>
   </div>
@@ -684,6 +703,7 @@ function platformBanks() {
   <div class="breadcrumb"><a href="/">Home</a><span>/</span><a href="/platform">Platform</a><span>/</span>Banks</div>
   <h1>Bank Connections</h1>
   <p>Connected correspondent banks and funding rails.</p>
+  <div style="margin-top:12px"><a href="/platform/bank-guide" class="btn btn-ghost btn-sm">Integration Instructions</a></div>
 </div>
 <div class="tabs">
   <div class="tab active" data-g="banks" data-t="banks-list" onclick="bkTab('banks-list',this)">Connected Banks</div>
@@ -5504,171 +5524,178 @@ document.addEventListener('DOMContentLoaded', function(){refreshHealthBadge('cry
 }
 
 // --- Proxy Logic -------------------------------------------------------------
-// Resolves an /api/* path to { host, port, upstreamPath }
-function resolveProxy(reqPath) {
-  // strip query string for matching
+// Console pages were written against the legacy microservice topology, whose
+// paths differ from the single Fastify API we now run. mapApiPath() translates
+// the common ones; the default rule strips the /api prefix so genuine API paths
+// (e.g. /api/ledger/entries, /api/wallets, /api/s2s/connections) pass through.
+const API_ALIASES = {
+  '/wallets/entries':     '/ledger/entries',
+  '/wallets/accounts':    '/ledger/accounts',
+  '/wallets/list':        '/wallets',
+  '/accounts':            '/ledger/accounts',
+  '/entries':             '/ledger/entries',
+  '/holds':               '/wallet-holds',
+  '/routing-rules':       '/routes',
+  '/routing':             '/routes',
+  '/auth/keys':           '/network/api-keys',
+  '/security/hmac/keys':  '/network/hmac-keys',
+  '/security/api-keys':   '/network/api-keys',
+  '/security/users':      '/admin/users',
+  '/ipwhitelist/entries': '/network/ip-whitelist',
+  '/ipwhitelist':         '/network/ip-whitelist',
+  '/audit/events':        '/admin/audit-logs',
+  '/audit':               '/admin/audit-logs',
+  '/risk/evaluate':       '/fraud/evaluate',
+  '/risk/blacklist':      '/fraud/blacklist',
+  '/risk/rules':          '/fraud/rules',
+  '/risk/dashboard':      '/fraud/risk-scores',
+  '/risk/review':         '/fraud/risk-scores',
+  '/risk/countries':      '/fraud/rules',
+  '/banks/receivers':     '/ledger/accounts',
+};
+
+function mapApiPath(reqPath) {
   const p = reqPath.split('?')[0];
   const qs = reqPath.includes('?') ? '?' + reqPath.split('?').slice(1).join('?') : '';
+  const rest = p.startsWith('/api') ? (p.slice(4) || '/') : p;
 
-  // -- Switch Core special paths (at root level on port 4010) --
-  // /api/acquirers ? 4010 /acquirers
-  if (p === '/api/acquirers' || p.startsWith('/api/acquirers/')) {
-    return { port: SVC.switchcore, path: '/acquirers' + p.slice('/api/acquirers'.length) + qs };
-  }
-  // /api/routing-rules ? 4010 /routing
-  if (p === '/api/routing-rules' || p.startsWith('/api/routing-rules/')) {
-    return { port: SVC.switchcore, path: '/routing' + p.slice('/api/routing-rules'.length) + qs };
-  }
-  // /api/settlement-queue ? 4010 /settlement-queue
-  if (p === '/api/settlement-queue' || p.startsWith('/api/settlement-queue/')) {
-    return { port: SVC.switchcore, path: '/settlement-queue' + p.slice('/api/settlement-queue'.length) + qs };
-  }
-  // /api/transactions ? 4010 /transactions (keep as-is)
-  if (p === '/api/transactions' || p.startsWith('/api/transactions/')) {
-    return { port: SVC.switchcore, path: '/transactions' + p.slice('/api/transactions'.length) + qs };
-  }
+  if (API_ALIASES[rest]) return API_ALIASES[rest] + qs;
 
-  // -- Ledger / Wallets --
-  if (p.startsWith('/api/wallets/')) {
-    const sub = p.slice('/api/wallets'.length); // e.g. /entries, /accounts, /holds/xxx, /:id/balance
-    // /wallets/entries ? /entries
+  if (rest.startsWith('/wallets/holds/')) {
+    return '/wallet-holds/' + rest.slice('/wallets/holds/'.length) + qs;
+  }
+  const bal = rest.match(/^\/wallets\/([^/]+)\/balance$/);
+  if (bal) return '/ledger/accounts/' + bal[1] + '/balance' + qs;
+  if (rest.startsWith('/wallets/')) {
+    const sub = rest.slice('/wallets'.length);
     if (sub === '/entries' || sub.startsWith('/entries/')) {
-      return { port: SVC.ledger, path: sub + qs };
+      return '/ledger/entries' + sub.slice('/entries'.length) + qs;
     }
-    // /wallets/accounts or /wallets/list ? /accounts
-    if (sub === '/accounts' || sub.startsWith('/accounts/') || sub === '/list') {
-      return { port: SVC.ledger, path: '/accounts' + (sub === '/list' ? '' : sub.slice('/accounts'.length)) + qs };
+    if (sub === '/accounts' || sub.startsWith('/accounts/')) {
+      return '/ledger/accounts' + sub.slice('/accounts'.length) + qs;
     }
-    // /wallets/holds/:ref ? /holds/:ref
-    if (sub.startsWith('/holds/')) {
-      return { port: SVC.ledger, path: sub + qs };
-    }
-    // /wallets/:id/balance ? /accounts/:id/balance
-    const balMatch = sub.match(/^\/([^/]+)\/balance$/);
-    if (balMatch) {
-      return { port: SVC.ledger, path: `/accounts/${balMatch[1]}/balance` + qs };
-    }
-    // default
-    return { port: SVC.ledger, path: sub + qs };
+    return sub + qs; // /wallets, /wallets/:address, ...
   }
+  if (rest.startsWith('/risk/'))         return '/fraud/' + rest.slice('/risk/'.length) + qs;
+  if (rest.startsWith('/ipwhitelist/'))  return '/network/ip-whitelist/' + rest.slice('/ipwhitelist/'.length) + qs;
+  if (rest.startsWith('/security/'))     return '/network/' + rest.slice('/security/'.length) + qs;
+  if (rest.startsWith('/auth/'))         return '/network/' + rest.slice('/auth/'.length) + qs;
+  if (rest.startsWith('/notification/')) return '/notifications/' + rest.slice('/notification/'.length) + qs;
+  if (rest.startsWith('/audit/'))        return '/admin/audit-logs' + qs;
+  if (rest.startsWith('/banks/'))        return '/ledger/accounts' + qs;
+  if (rest.startsWith('/terminals/merchants')) return '/merchants/overview' + qs;
 
-  // -- Ledger direct shortcuts (used by wallet page) --
-  // /api/accounts  → ledger :4001/accounts
-  if (p === '/api/accounts' || p.startsWith('/api/accounts/')) {
-    return { port: SVC.ledger, path: '/accounts' + p.slice('/api/accounts'.length) + qs };
-  }
-  // /api/entries  → ledger :4001/entries
-  if (p === '/api/entries' || p.startsWith('/api/entries/')) {
-    return { port: SVC.ledger, path: '/entries' + p.slice('/api/entries'.length) + qs };
-  }
-  // /api/holds  → ledger :4001/holds
-  if (p === '/api/holds' || p.startsWith('/api/holds/')) {
-    return { port: SVC.ledger, path: '/holds' + p.slice('/api/holds'.length) + qs };
-  }
-  // /api/banks/receivers  → ledger :4001/accounts (store as accounts)
-  if (p === '/api/banks/receivers' || p.startsWith('/api/banks/')) {
-    return { port: SVC.ledger, path: '/accounts' + qs };
-  }
-
-  // -- Crypto Payout (real on-chain broadcaster) --
-  // /api/crypto/withdraw ? 4014 /withdraw ; /api/crypto/health ? 4014 /health
-  if (p === '/api/crypto' || p.startsWith('/api/crypto/')) {
-    return { port: SVC.crypto, path: (p.slice('/api/crypto'.length) || '/') + qs };
-  }
-
-  // -- Transfers --
-  if (p === '/api/transfers' || p.startsWith('/api/transfers/')) {
-    return { port: SVC.transfer, path: '/transfers' + p.slice('/api/transfers'.length) + qs };
-  }
-
-  // -- Terminals — sub-resources strip /terminals prefix --
-  if (p.startsWith('/api/terminals')) {
-    const termSub = ['/merchants','/groups','/parameters','/keys','/firmware','/fleet','/applications','/commands','/events','/activity','/dashboard'];
-    const sub = p.slice('/api/terminals'.length) || '/';
-    for (const s of termSub) {
-      if (sub === s || sub.startsWith(s + '/')) {
-        return { port: SVC.terminal, path: sub + qs };
-      }
-    }
-    // /api/terminals  ? /terminals
-    // /api/terminals/:id ? /terminals/:id
-    return { port: SVC.terminal, path: '/terminals' + sub + qs };
-  }
-
-  // -- IP Whitelist --
-  if (p.startsWith('/api/ipwhitelist/')) {
-    return { port: SVC.ipwhitelist, path: p.slice('/api/ipwhitelist'.length) + qs };
-  }
-
-  // -- Risk (keep /risk/ prefix) --
-  if (p.startsWith('/api/risk/') || p === '/api/risk') {
-    return { port: SVC.risk, path: p.slice('/api'.length) + qs };
-  }
-
-  // -- Settlement --
-  if (p.startsWith('/api/settlement/') || p === '/api/settlement') {
-    return { port: SVC.settlement, path: p.slice('/api/settlement'.length) || '/' + qs };
-  }
-
-  // -- Security --
-  if (p.startsWith('/api/security/') || p === '/api/security') {
-    return { port: SVC.security, path: p.slice('/api/security'.length) || '/' + qs };
-  }
-
-  // -- Routing --
-  if (p.startsWith('/api/routing/') || p === '/api/routing') {
-    return { port: SVC.routing, path: p.slice('/api/routing'.length) || '/' + qs };
-  }
-
-  // -- ISO 8583 --
-  if (p.startsWith('/api/iso8583/') || p === '/api/iso8583') {
-    return { port: SVC.iso8583, path: p.slice('/api/iso8583'.length) || '/' + qs };
-  }
-
-  // -- Audit --
-  if (p.startsWith('/api/audit/') || p === '/api/audit') {
-    return { port: SVC.audit, path: p.slice('/api/audit'.length) || '/' + qs };
-  }
-
-  // -- Notification --
-  if (p.startsWith('/api/notification/') || p === '/api/notification') {
-    return { port: SVC.notification, path: p.slice('/api/notification'.length) || '/' + qs };
-  }
-
-  // -- Auth --
-  if (p.startsWith('/api/auth/') || p === '/api/auth') {
-    return { port: SVC.auth, path: p.slice('/api/auth'.length) || '/' + qs };
-  }
-
-  return null;
+  return rest + qs;
 }
 
-function proxyRequest(req, res, targetPort, targetPath) {
-  const options = {
-    hostname: '127.0.0.1',
-    port: targetPort,
-    path: targetPath,
-    method: req.method,
-    headers: { ...req.headers, host: `127.0.0.1:${targetPort}` },
-  };
-  delete options.headers['content-length']; // let node recalculate
+// Resolve an /api/* request to { origin, path } on the upstream API.
+function resolveProxy(reqPath) {
+  return { origin: API_ORIGIN, path: mapApiPath(reqPath) };
+}
+
+// --- Operator Session --------------------------------------------------------
+// The console hosts a sign-in gate that reuses the API's /admin/login. The JWT it
+// returns is stored in an HttpOnly cookie and replayed to the API as a bearer
+// token, so /admin/* routes (which skip HMAC) authenticate as the operator.
+function parseCookies(req) {
+  const out = {};
+  (req.headers.cookie || '').split(';').forEach(part => {
+    const idx = part.indexOf('=');
+    if (idx === -1) return;
+    const key = part.slice(0, idx).trim();
+    if (key) out[key] = decodeURIComponent(part.slice(idx + 1).trim());
+  });
+  return out;
+}
+
+function base64UrlToBuffer(value) {
+  const padded = value.replace(/-/g, '+').replace(/_/g, '/');
+  return Buffer.from(padded + '='.repeat((4 - (padded.length % 4)) % 4), 'base64');
+}
+
+// Minimal HS256 verification — the session only ever holds a token we issued.
+function verifySessionToken(token) {
+  if (!token || typeof token !== 'string') return null;
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  const [header, payload, signature] = parts;
+  const expected = createHmac('sha256', JWT_SECRET).update(`${header}.${payload}`).digest();
+  const actual = base64UrlToBuffer(signature);
+  if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return null;
+  let claims;
+  try { claims = JSON.parse(base64UrlToBuffer(payload).toString('utf8')); } catch { return null; }
+  if (claims.exp && Date.now() >= claims.exp * 1000) return null;
+  return claims;
+}
+
+function readSession(req) {
+  const token = parseCookies(req)[SESSION_COOKIE];
+  const claims = verifySessionToken(token);
+  return claims ? { token, claims } : null;
+}
+
+function sessionCookie(token) {
+  const secure = process.env.COOKIE_SECURE === 'true' ? '; Secure' : '';
+  return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_TTL_SECONDS}${secure}`;
+}
+
+function clearedSessionCookie() {
+  return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+}
+
+function signRequest(keyId, timestamp, rawBody) {
+  return createHmac('sha256', CONSOLE_HMAC_SECRET).update(`${keyId}${timestamp}${rawBody}`).digest('hex');
+}
+
+// Proxy a console request to the upstream API, signing it so the closed-by-default
+// API accepts it, and forwarding the operator session for /admin/* routes.
+function proxyRequest(req, res, targetOrigin, targetPath) {
+  const base = new URL(targetOrigin);
+  const useTls = base.protocol === 'https:';
+
+  const headers = { ...req.headers };
+  delete headers['content-length']; // recomputed from the normalised body below
+  delete headers['cookie'];         // console-internal cookie is not for the API
+  headers.host = base.host;
+
+  const session = readSession(req);
+  if (session) headers.authorization = `Bearer ${session.token}`;
 
   const body = [];
   req.on('data', c => body.push(c));
   req.on('end', () => {
-    const payload = Buffer.concat(body);
-    if (payload.length > 0) {
-      options.headers['content-length'] = payload.length;
+    let payload = Buffer.concat(body);
+
+    // Re-serialise JSON so our signature matches the API's own JSON.stringify(body).
+    if (payload.length > 0 && /application\/json/i.test(headers['content-type'] || '')) {
+      try { payload = Buffer.from(JSON.stringify(JSON.parse(payload.toString('utf8'))), 'utf8'); } catch { /* not JSON */ }
     }
 
-    const proxy = httpRequest(options, (upstream) => {
+    // The API contract is a millisecond epoch (see src/plugins/auth.ts).
+    const timestamp = String(Date.now());
+    headers[`${HMAC_HEADER_PREFIX}-key-id`] = CONSOLE_HMAC_KEY_ID;
+    headers[`${HMAC_HEADER_PREFIX}-timestamp`] = timestamp;
+    headers[`${HMAC_HEADER_PREFIX}-signature`] =
+      signRequest(CONSOLE_HMAC_KEY_ID, timestamp, payload.length > 0 ? payload.toString('utf8') : '');
+    if (payload.length > 0) headers['content-length'] = payload.length;
+
+    const options = {
+      hostname: base.hostname,
+      port: base.port || (useTls ? 443 : 80),
+      path: targetPath,
+      method: req.method,
+      headers,
+    };
+
+    const proxy = (useTls ? httpsRequest : httpRequest)(options, (upstream) => {
       res.writeHead(upstream.statusCode, upstream.headers);
       upstream.pipe(res);
     });
 
     proxy.on('error', (err) => {
+      if (res.headersSent) { res.destroy(); return; }
       res.writeHead(502, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Service unavailable', port: targetPort, detail: err.message }));
+      res.end(JSON.stringify({ error: 'Service unavailable', origin: targetOrigin, detail: err.message }));
     });
 
     if (payload.length > 0) proxy.write(payload);
@@ -5677,25 +5704,34 @@ function proxyRequest(req, res, targetPort, targetPath) {
 }
 
 // --- Health Check All Services -----------------------------------------------
+// All console service panels now share a single upstream API, so probe it once
+// and report the same status under every legacy service port.
 function checkAllHealth() {
-  const entries = Object.entries(SVC);
-  const promises = entries.map(([name, port]) =>
-    new Promise((resolve) => {
-      const startedAt = Date.now();
-      const responseMs = () => Date.now() - startedAt;
-      const req = httpRequest({ hostname: '127.0.0.1', port, path: '/health', method: 'GET' }, (r) => {
-        resolve({ name, port, ok: r.statusCode < 400, responseMs: responseMs() });
-        r.resume();
+  return new Promise((resolve) => {
+    const startedAt = Date.now();
+    const responseMs = () => Date.now() - startedAt;
+    const base = new URL(API_ORIGIN);
+    const useTls = base.protocol === 'https:';
+    const finish = (ok) => {
+      const services = {};
+      Object.entries(SVC).forEach(([name, port]) => {
+        services[`port_${port}`] = { name, ok, responseMs: responseMs() };
       });
-      req.setTimeout(2000, () => { req.destroy(); resolve({ name, port, ok: false, responseMs: responseMs() }); });
-      req.on('error', () => resolve({ name, port, ok: false, responseMs: responseMs() }));
-      req.end();
-    })
-  );
-  return Promise.all(promises).then(results => {
-    const services = {};
-    results.forEach(r => { services[`port_${r.port}`] = { name: r.name, ok: r.ok, responseMs: r.responseMs }; });
-    return { ok: results.every(r => r.ok), services };
+      resolve({ ok, services });
+    };
+    const req = (useTls ? httpsRequest : httpRequest)(
+      {
+        hostname: base.hostname,
+        port: base.port || (useTls ? 443 : 80),
+        path: '/health',
+        method: 'GET',
+        headers: { host: base.host },
+      },
+      (r) => { finish(r.statusCode < 400); r.resume(); }
+    );
+    req.setTimeout(5000, () => { req.destroy(); finish(false); });
+    req.on('error', () => finish(false));
+    req.end();
   });
 }
 
@@ -5923,11 +5959,12 @@ function handleBankApi(req, res) {
   </div>
 </div>
 <script>
-const _S2E={BASE:window.__API_URL__||'http://localhost:8081',KEY:'psk_demo_key_001',get sec(){return localStorage.getItem('ps_hmac_secret')||'';},set sec(v){localStorage.setItem('ps_hmac_secret',v);}};
-async function _s2eSign(ts,body){if(!_S2E.sec){_S2E.sec=prompt('Enter HMAC secret (from seed output):')||'';} const enc=new TextEncoder(),k=await crypto.subtle.importKey('raw',enc.encode(_S2E.sec),{name:'HMAC',hash:'SHA-256'},false,['sign']),sig=await crypto.subtle.sign('HMAC',k,enc.encode(_S2E.KEY+ts+body));return Array.from(new Uint8Array(sig)).map(b=>b.toString(16).padStart(2,'0')).join('');}
-async function _s2eGet(p){const ts=Date.now().toString(),r=await fetch(_S2E.BASE+p,{headers:{'x-primestack-key-id':_S2E.KEY,'x-primestack-timestamp':ts,'x-primestack-signature':await _s2eSign(ts,'')},signal:AbortSignal.timeout(8000)});if(!r.ok)throw new Error(r.status);return r.json();}
-async function _s2ePost(p,d){const b=JSON.stringify(d),ts=Date.now().toString(),r=await fetch(_S2E.BASE+p,{method:'POST',headers:{'Content-Type':'application/json','x-primestack-key-id':_S2E.KEY,'x-primestack-timestamp':ts,'x-primestack-signature':await _s2eSign(ts,b)},body:b,signal:AbortSignal.timeout(8000)});return{ok:r.ok,data:await r.json()};}
-async function _s2ePatch(p,d){const b=JSON.stringify(d),ts=Date.now().toString(),r=await fetch(_S2E.BASE+p,{method:'PATCH',headers:{'Content-Type':'application/json','x-primestack-key-id':_S2E.KEY,'x-primestack-timestamp':ts,'x-primestack-signature':await _s2eSign(ts,b)},body:b,signal:AbortSignal.timeout(8000)});return{ok:r.ok,data:await r.json()};}
+// Calls go through the console's /api proxy, which signs each request with the
+// operator's console HMAC key — the browser never holds an API secret.
+const _S2E={BASE:'/api'};
+async function _s2eGet(p){const r=await fetch(_S2E.BASE+p,{headers:{'Accept':'application/json'},signal:AbortSignal.timeout(8000)});if(!r.ok)throw new Error(r.status);return r.json();}
+async function _s2ePost(p,d){const b=JSON.stringify(d),r=await fetch(_S2E.BASE+p,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:b,signal:AbortSignal.timeout(8000)});return{ok:r.ok,data:await r.json()};}
+async function _s2ePatch(p,d){const b=JSON.stringify(d),r=await fetch(_S2E.BASE+p,{method:'PATCH',headers:{'Content-Type':'application/json','Accept':'application/json'},body:b,signal:AbortSignal.timeout(8000)});return{ok:r.ok,data:await r.json()};}
 function _s2eBadge(s){const m={ACTIVE:'success',COMPLETED:'success',SUBMITTED:'info',AUTHENTICATED:'info',PENDING:'warn',PROCESSING:'warn',TESTING:'warn',FAILED:'danger',CANCELLED:'danger',INACTIVE:'danger',SUSPENDED:'danger',REVERSED:'warn'};return '<span class="badge badge-'+(m[s]||'warn')+'">'+s+'</span>';}
 function _s2eEmpty(n,msg){return '<tr><td colspan="'+n+'" style="text-align:center;padding:20px;color:var(--muted)">'+msg+'</td></tr>';}
 async function s2eLoad(){
@@ -5944,9 +5981,9 @@ async function s2eLoad(){
     document.getElementById('s2e-wd-body').innerHTML=ws.length?ws.map(w=>'<tr><td style="padding:8px;font-family:monospace;font-size:.68rem">'+w.reference+'</td><td style="padding:8px;font-weight:600">'+Number(w.amount||0).toFixed(2)+'</td><td style="padding:8px">'+w.currency+'</td><td style="padding:8px">'+w.bankName+'</td><td style="padding:8px;font-size:.68rem">'+w.accountHolderName+'</td><td style="padding:8px">'+_s2eBadge(w.status)+'</td><td style="padding:8px">'+(['SUBMITTED','PROCESSING'].includes(w.status)?'<button class="btn btn-success btn-sm" onclick="_s2eDoneById(this)" data-id="'+w.id+'">Mark Done</button>':'-')+'</td></tr>').join(''):_s2eEmpty(7,'No withdrawals yet.');
     document.getElementById('s2e-tpl-body').innerHTML=ts2.length?ts2.map(t=>'<div style="padding:10px;border-bottom:1px solid var(--border)"><strong>'+t.name+'</strong> '+(t.isDefault?_s2eBadge('ACTIVE'):'')+' <span style="font-size:.78rem;color:var(--muted)">'+(t.description||'-')+' - '+new Date(t.createdAt).toLocaleDateString()+'</span></div>').join(''):'<div style="padding:16px;color:var(--muted)">No templates.</div>';
     st.textContent='Updated '+new Date().toLocaleTimeString();toast('S2S data loaded','ok');
-  }catch(e){st.textContent='Error: '+e.message;toast('Start server: npm run dev','err');}
+  }catch(e){st.textContent='Error: '+e.message;toast('Could not reach the API: '+e.message,'err');}
 }
-async function _s2ePingById(btn){const id=btn.dataset.id;try{const ts=Date.now().toString(),r=await fetch(_S2E.BASE+'/s2s/connections/'+id+'/ping',{method:'POST',headers:{'x-primestack-key-id':_S2E.KEY,'x-primestack-timestamp':ts,'x-primestack-signature':await _s2eSign(ts,'')},signal:AbortSignal.timeout(12000)});const d=(await r.json()).data||{};toast('Ping: '+(d.reachable?'ONLINE':'OFFLINE')+' '+d.latencyMs+'ms',d.reachable?'ok':'err');}catch(e){toast('Ping failed','err');}}
+async function _s2ePingById(btn){const id=btn.dataset.id;try{const r=await fetch(_S2E.BASE+'/s2s/connections/'+id+'/ping',{method:'POST',signal:AbortSignal.timeout(12000)});const d=(await r.json()).data||{};toast('Ping: '+(d.reachable?'ONLINE':'OFFLINE')+' '+d.latencyMs+'ms',d.reachable?'ok':'err');}catch(e){toast('Ping failed','err');}}
 async function _s2eRotateById(btn){const id=btn.dataset.id,s=prompt('New secret (min 16 chars):');if(!s||s.length<16)return;const r=await _s2ePost('/s2s/connections/'+id+'/rotate-secret',{newSecret:s});if(r.ok)toast('Secret rotated. Update sender now.','ok');else toast('Error','err');}
 async function _s2eDoneById(btn){const id=btn.dataset.id;if(!confirm('Mark COMPLETED?'))return;const r=await _s2ePatch('/s2s/withdrawals/'+id+'/status',{status:'COMPLETED'});if(r.ok){toast('Marked COMPLETED','ok');s2eLoad();}else toast('Error','err');}
 async function s2eSubmitWd(){const p={connectionId:document.getElementById('s2e-wd-conn').value,walletAddress:document.getElementById('s2e-wd-wallet').value,amount:document.getElementById('s2e-wd-amount').value,currency:document.getElementById('s2e-wd-cur').value,bankName:document.getElementById('s2e-wd-bank').value,bankCountry:document.getElementById('s2e-wd-country').value.toUpperCase(),accountHolderName:document.getElementById('s2e-wd-holder').value,accountNumber:document.getElementById('s2e-wd-acct').value,swiftBic:document.getElementById('s2e-wd-swift').value||undefined};const r=await _s2ePost('/s2s/withdrawals',p);showResult('s2e-wd-result',r.data,r.ok);if(r.ok){toast('Withdrawal: '+r.data.data?.reference,'ok');s2eLoad();}}
@@ -7870,7 +7907,7 @@ RAILS_PORT=8082</pre></div>
 </div>
 
 <script>
-var RAILS='http://localhost:8082';
+var RAILS='/api';
 function initRailsPage() {
   initTabs('rl');
   rlLoadStats();
@@ -7923,7 +7960,7 @@ function rlSimulate(){
     if(d.success){toast('Simulation: '+d.data.status,'ok');rlLoadTransactions();rlLoadCustomers();rlLoadStats();}else toast('Failed','err');
     if(btn){btn.disabled=false;btn.textContent='🧪 Run Simulation';}
   }).catch(function(e){var el=document.getElementById('sim-result');el.className='result show err';el.textContent='Offline: '+e.message;if(btn){btn.disabled=false;btn.textContent='🧪 Run Simulation';}});}
-function rlCheckService(){fetch(RAILS+'/health').then(function(r){return r.json();}).then(function(d){var el=document.getElementById('rl-svc-result');el.className='result show ok';el.textContent=JSON.stringify(d,null,2);}).catch(function(e){var el=document.getElementById('rl-svc-result');el.className='result show err';el.textContent='Offline: '+e.message+'\\nRun: node rails-service.js';});}
+function rlCheckService(){fetch(RAILS+'/rails/health').then(function(r){return r.json();}).then(function(d){var el=document.getElementById('rl-svc-result');el.className='result show ok';el.textContent=JSON.stringify(d,null,2);}).catch(function(e){var el=document.getElementById('rl-svc-result');el.className='result show err';el.textContent='Rails service unavailable: '+e.message;});}
 </script>
 `);
 }
@@ -7990,15 +8027,153 @@ function bankIntegrationGuidePage() {
 </div>
 `);
 }
+// --- Operator Sign-in --------------------------------------------------------
+function loginPage(errorMessage) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Operator Sign-in — PrimeStack</title>
+${CSS}
+<style>
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.login-card{width:100%;max-width:400px;background:var(--surf);border:1px solid var(--border);border-radius:var(--radius);padding:28px;box-shadow:0 18px 60px rgba(0,0,0,.35)}
+.login-mark{display:flex;align-items:center;gap:10px;font-weight:700;font-size:.95rem}
+.login-sub{font-size:.78rem;color:var(--muted);margin:4px 0 20px}
+.login-card label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.05em}
+.login-card input{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:.9rem;font-family:inherit}
+.login-card input:focus{outline:none;border-color:var(--accent)}
+.login-card button{width:100%;margin-top:22px;padding:12px;border:none;border-radius:var(--radius-sm);background:var(--accent);color:#fff;font-weight:700;font-size:.9rem;cursor:pointer;font-family:inherit}
+.login-card button:disabled{opacity:.6;cursor:default}
+.login-err{margin-top:16px;padding:10px 12px;border-radius:var(--radius-sm);background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.4);color:#c0392b;font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="login-wrap">
+  <form class="login-card" method="POST" action="/login" id="loginForm">
+    <div class="login-mark">${svgIcon('grid')}<span>PrimeStack Global Server Network</span></div>
+    <div class="login-sub">Operator console — authorised personnel only</div>
+    <label for="email">Email</label>
+    <input id="email" name="email" type="email" autocomplete="username" required autofocus>
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" autocomplete="current-password" required>
+    ${errorMessage ? `<div class="login-err">${errorMessage}</div>` : ''}
+    <button type="submit" id="loginBtn">Sign in</button>
+  </form>
+</div>
+<script>
+document.getElementById('loginForm').addEventListener('submit', function () {
+  document.getElementById('loginBtn').disabled = true;
+  document.getElementById('loginBtn').textContent = 'Signing in…';
+});
+</script>
+</body>
+</html>`;
+}
+
+function handleLogin(req, res) {
+  if (req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(loginPage());
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.writeHead(405, { 'Content-Type': 'text/plain' });
+    res.end('Method Not Allowed');
+    return;
+  }
+
+  const body = [];
+  req.on('data', c => body.push(c));
+  req.on('end', () => {
+    const params = new URLSearchParams(Buffer.concat(body).toString('utf8'));
+    const email = (params.get('email') || '').trim();
+    const password = params.get('password') || '';
+
+    if (!email || !password) {
+      res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(loginPage('Email and password are required.'));
+      return;
+    }
+
+    const payload = JSON.stringify({ email, password });
+    const base = new URL(API_ORIGIN);
+    const useTls = base.protocol === 'https:';
+    const loginReq = (useTls ? httpsRequest : httpRequest)(
+      {
+        hostname: base.hostname,
+        port: base.port || (useTls ? 443 : 80),
+        path: '/admin/login',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(payload),
+          host: base.host,
+        },
+      },
+      (upstream) => {
+        const chunks = [];
+        upstream.on('data', c => chunks.push(c));
+        upstream.on('end', () => {
+          let token = null;
+          try {
+            const parsed = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+            token = parsed && parsed.data ? parsed.data.token : null;
+          } catch { /* not JSON */ }
+
+          if (!upstream.statusCode || upstream.statusCode >= 400 || !token) {
+            res.writeHead(401, { 'Content-Type': 'text/html; charset=utf-8' });
+            res.end(loginPage('Incorrect email or password.'));
+            return;
+          }
+          res.writeHead(302, { 'Set-Cookie': sessionCookie(token), Location: '/' });
+          res.end();
+        });
+      }
+    );
+    loginReq.on('error', () => {
+      res.writeHead(502, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(loginPage('Authentication service unavailable. Please try again shortly.'));
+    });
+    loginReq.write(payload);
+    loginReq.end();
+  });
+}
+
 // --- HTTP Server -------------------------------------------------------------
 const server = createServer((req, res) => {
   const url = req.url || '/';
   const path = url.split('?')[0];
 
-  // -- Health endpoint --
+  // -- Health endpoint (public) --
   if (req.method === 'GET' && path === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true, service: 'dashboard', port: PORT }));
+    return;
+  }
+
+  // -- Operator sign-in / sign-out (public) --
+  if (path === '/login') {
+    handleLogin(req, res);
+    return;
+  }
+  if (path === '/logout') {
+    res.writeHead(302, { 'Set-Cookie': clearedSessionCookie(), Location: '/login' });
+    res.end();
+    return;
+  }
+
+  // -- Authentication gate --
+  const session = readSession(req);
+  if (!session) {
+    if (path.startsWith('/api/')) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Unauthorized', message: 'Operator sign-in required' }));
+    } else {
+      res.writeHead(302, { Location: '/login' });
+      res.end();
+    }
     return;
   }
 
@@ -8017,14 +8192,18 @@ const server = createServer((req, res) => {
       handleBankApi(req, res);
       return;
     }
+    // payment rails (separate in-process service)
+    if (path === '/api/rails/health') {
+      proxyRequest(req, res, RAILS_ORIGIN, '/health');
+      return;
+    }
+    if (path.startsWith('/api/rails/')) {
+      proxyRequest(req, res, RAILS_ORIGIN, path.slice('/api'.length));
+      return;
+    }
     // resolve and proxy
     const target = resolveProxy(url);
-    if (target) {
-      proxyRequest(req, res, target.port, target.path);
-    } else {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Unknown API path', path }));
-    }
+    proxyRequest(req, res, target.origin, target.path);
     return;
   }
 
@@ -8099,7 +8278,6 @@ const server = createServer((req, res) => {
     case '/admin/svc/iso8583':     html = adminIso8583();        break;
     case '/admin/svc/crypto':      html = adminCrypto();         break;
     case '/platform/s2s-engine': html = s2sEnginePage();     break;
-    case '/platform/s2s-engine': html = s2sEnginePage();     break;
     case '/admin/svc/gateway':     html = adminGateway();        break;
     default:
       res.writeHead(404, { 'Content-Type': 'text/html' });
@@ -8116,7 +8294,9 @@ const server = createServer((req, res) => {
   res.end(html.replace('</body>', `${dashboardLocalizationScript()}</body>`));
 });
 
-const PORT = Number(process.env.PORT || 8081);
+// Public console port. In the single-service deployment the Fastify API runs
+// internally on API_PORT and this console owns the platform-assigned PORT.
+const PORT = Number(process.env.PORT || 3000);
 if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) {
   throw new Error('PORT must be an integer between 1 and 65535');
 }

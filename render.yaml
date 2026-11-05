@@ -1,30 +1,23 @@
-databases:
-  - name: primestack-postgres
-    databaseName: primestack
-    user: primestack
-    plan: free
-    region: oregon
-
-  - name: primestack-redis
-    type: redis
-    plan: free
-    region: oregon
-    ipAllowList: []
-
+# PrimeStack Global Server Network — single-service Render blueprint.
+#
+# One web service hosts the entire platform:
+#   • the operator console on Render's public PORT
+#   • the Fastify API internally on API_PORT (proxied by the console)
 services:
   - type: web
-    name: primestack-api
+    name: primestack-platform
     runtime: node
     region: oregon
     plan: free
     branch: main
-    buildCommand: npm install && npx prisma generate && npm run build
-    startCommand: npm run start
+    buildCommand: npm install --include=dev && npx prisma generate && npx prisma db push --skip-generate && npx tsx prisma/seed.ts && npm run build
+    startCommand: node start-platform.mjs
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
+      # Render assigns PORT; the API listens internally on API_PORT.
+      - key: API_PORT
         value: 8081
       - key: HOST
         value: 0.0.0.0
@@ -32,6 +25,8 @@ services:
         value: info
       - key: APP_NAME
         value: primestack-global-server-network
+
+      # ── Data stores ───────────────────────────────
       - key: DATABASE_URL
         fromDatabase:
           name: primestack-postgres
@@ -41,14 +36,26 @@ services:
           name: primestack-redis
           type: redis
           property: connectionString
+
+      # ── Auth / signing ────────────────────────────
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRES_IN
         value: 24h
+      - key: COOKIE_SECURE
+        value: "true"
       - key: HMAC_ALGORITHM
         value: sha256
       - key: HMAC_HEADER_PREFIX
         value: x-primestack
+      # Console operator key — the seed writes this key so the console can sign
+      # its proxied API calls.
+      - key: CONSOLE_HMAC_KEY_ID
+        value: psk_console_001
+      - key: CONSOLE_HMAC_SECRET
+        generateValue: true
+
+      # ── Limits / i18n ─────────────────────────────
       - key: RATE_LIMIT_MAX
         value: 1000
       - key: RATE_LIMIT_WINDOW
@@ -57,6 +64,8 @@ services:
         value: en
       - key: SUPPORTED_LANGUAGES
         value: en,fr,es,ar,pt
+
+      # ── Secrets / integrations ────────────────────
       - key: S2S_SECRET_KEY
         generateValue: true
       - key: BANK_DETAILS_ENCRYPTION_KEY
@@ -74,23 +83,23 @@ services:
       - key: BANK_IN2_SWIFT_BIC
         value: ICICINBBCTS
 
-  - type: web
-    name: primestack-dashboard
-    runtime: node
-    region: oregon
-    plan: free
-    branch: main
-    buildCommand: npm install
-    startCommand: node start-dashboard.js
-    envVars:
-      - key: PORT
-        value: 3000
-      - key: NODE_ENV
-        value: production
-
+  # Static documentation site — unchanged, served from ./docs.
   - type: static
     name: primestack-website
     branch: main
     staticPublishPath: ./docs
     buildCommand: echo done
     pullRequestPreviewsEnabled: false
+
+databases:
+  - name: primestack-postgres
+    databaseName: primestack
+    user: primestack
+    plan: free
+    region: oregon
+
+  - name: primestack-redis
+    type: redis
+    plan: free
+    region: oregon
+    ipAllowList: []

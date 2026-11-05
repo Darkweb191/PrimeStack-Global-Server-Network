@@ -123,6 +123,32 @@ async function main() {
   console.log(`  ✓ Key ID: ${keyId}`);
   console.log(`  ✓ Secret: ${hmacSecret}`);
 
+  // ── 4b. Console Operator HMAC Key ───────────────
+  // The dashboard console signs its proxied API calls with this key so the
+  // closed-by-default Fastify API accepts them. The secret must match the
+  // CONSOLE_HMAC_SECRET env var read by the console at runtime.
+  console.log("\nCreating console operator HMAC key...");
+
+  const consoleKeyId = process.env.CONSOLE_HMAC_KEY_ID || "psk_console_001";
+  const consoleSecret = process.env.CONSOLE_HMAC_SECRET || randomBytes(32).toString("hex");
+
+  await prisma.hmacKey.upsert({
+    where: { keyId: consoleKeyId },
+    update: { secret: consoleSecret, status: "ACTIVE" },
+    create: {
+      keyId: consoleKeyId,
+      secret: consoleSecret,
+      merchantId: merchant.id,
+      algorithm: "sha256",
+      status: "ACTIVE",
+    },
+  });
+  console.log(`  ✓ Console key ID: ${consoleKeyId}`);
+  if (!process.env.CONSOLE_HMAC_SECRET) {
+    console.log(`  ! CONSOLE_HMAC_SECRET not set — generated: ${consoleSecret}`);
+    console.log("    Set CONSOLE_HMAC_SECRET to this value so the console can sign requests.");
+  }
+
   // ── 5. IP Whitelist ─────────────────────────────
   console.log("\nCreating IP whitelist entries...");
 
