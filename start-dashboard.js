@@ -36,7 +36,10 @@ const SVC = {
 // The PrimeStack Fastify API (src/) runs inside this same service on an internal
 // port. Every console /api/* call is proxied there. The SVC port map above is
 // retained only as the display list for the health panel.
-const API_ORIGIN = process.env.PRIMESTACK_API_URL || process.env.INTERNAL_API_URL || 'http://127.0.0.1:8081';
+// PRIMESTACK_API_URL is set by start-platform.mjs for the single-service setup.
+// For a standalone dashboard deploy, fall back to API_URL (the origin documented
+// above) before the localhost default.
+const API_ORIGIN = process.env.PRIMESTACK_API_URL || process.env.INTERNAL_API_URL || process.env.API_URL || 'http://127.0.0.1:8081';
 
 // Payment rails service (rails-service.js) — runs alongside the API in this service.
 const RAILS_ORIGIN = process.env.RAILS_SERVICE_URL || `http://127.0.0.1:${process.env.RAILS_PORT || 8082}`;
