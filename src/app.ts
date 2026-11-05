@@ -41,6 +41,7 @@ import { registerDeveloperPlatformModule } from "./modules/developer-platform/de
 import { registerGovernanceModule } from "./modules/governance/governance.module.js";
 import { registerIntelligenceModule } from "./modules/intelligence/intelligence.module.js";
 import { registerS2sEngineModule } from "./modules/s2s-engine/s2s-engine.module.js";
+import { registerT2tRoutes } from "./modules/t2t/t2t.routes.js";
 
 /**
  * Create and configure the Fastify application.
@@ -166,6 +167,7 @@ export async function createApp(): Promise<FastifyInstance> {
   registerGovernanceModule(app);
   registerIntelligenceModule(app);
   registerS2sEngineModule(app);
+  registerT2tRoutes(app);
 
   // ── Health Check ────────────────────────────────
   app.get("/health", async () => ({
