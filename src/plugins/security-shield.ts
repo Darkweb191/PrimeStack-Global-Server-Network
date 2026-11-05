@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import fp from "fastify-plugin";
 import { redis } from "../core/redis.js";
-import { AppError, ForbiddenError, RateLimitError } from "../core/errors.js";
+import { ForbiddenError } from "../core/errors.js";
 import { config } from "../config/index.js";
 import { logger } from "../core/logger.js";
 
@@ -158,7 +158,7 @@ export async function banIp(ip: string, reason: string, durationSeconds = 3600):
  */
 export const securityShieldPlugin = fp(async (app: FastifyInstance) => {
   // ?? Layer 0: Pre-request ban check ??????????????????????????????
-  app.addHook("onRequest", async (request: FastifyRequest, reply: FastifyReply) => {
+  app.addHook("onRequest", async (request: FastifyRequest, _reply: FastifyReply) => {
     const ip = getClientIp(request);
 
     // Check if IP is banned
@@ -221,7 +221,7 @@ export const securityShieldPlugin = fp(async (app: FastifyInstance) => {
 
   // ?? Layer 6: API Docs Protection ????????????????????????????????
   // In production, /docs requires admin JWT authentication
-  app.addHook("onRequest", async (request: FastifyRequest, reply: FastifyReply) => {
+  app.addHook("onRequest", async (request: FastifyRequest, _reply: FastifyReply) => {
     if (request.url.startsWith("/docs") && config.app.env === "production") {
       try {
         await request.jwtVerify();
@@ -236,7 +236,7 @@ export const securityShieldPlugin = fp(async (app: FastifyInstance) => {
   });
 
   // ?? Layer 7: Strip server-identifying headers ???????????????????
-  app.addHook("onSend", async (request: FastifyRequest, reply: FastifyReply, payload) => {
+  app.addHook("onSend", async (_request: FastifyRequest, reply: FastifyReply, payload) => {
     reply.header("X-Powered-By", "");
     reply.removeHeader("X-Powered-By");
     reply.header("Server", "");

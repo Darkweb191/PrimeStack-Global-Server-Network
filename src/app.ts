@@ -16,7 +16,7 @@ import { i18nPlugin } from "./plugins/i18n.js";
 import { errorHandlerPlugin } from "./plugins/error-handler.js";
 import { ipWhitelistPlugin } from "./plugins/ip-whitelist.js";
 import { hmacAuthPlugin, jwtAuthHook } from "./plugins/auth.js";
-import { securityShieldPlugin, recordAuthFailure, clearAuthFailures } from "./plugins/security-shield.js";
+import { securityShieldPlugin } from "./plugins/security-shield.js";
 import requestLogger from "./plugins/request-logger.js";
 
 // Modules
