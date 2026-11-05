@@ -16,6 +16,7 @@ import { i18nPlugin } from "./plugins/i18n.js";
 import { errorHandlerPlugin } from "./plugins/error-handler.js";
 import { ipWhitelistPlugin } from "./plugins/ip-whitelist.js";
 import { hmacAuthPlugin, jwtAuthHook } from "./plugins/auth.js";
+import { securityShieldPlugin, recordAuthFailure, clearAuthFailures } from "./plugins/security-shield.js";
 import requestLogger from "./plugins/request-logger.js";
 
 // Modules
@@ -79,10 +80,21 @@ export async function createApp(): Promise<FastifyInstance> {
   // ── Core Plugins ────────────────────────────────
   await app.register(helmet, {
     contentSecurityPolicy: false, // API server, not a browser app
+    crossOriginEmbedderPolicy: false,
+  });
+
+  // Security headers ? prevent scraping and framing
+  app.addHook("onSend", async (_request, reply, payload) => {
+    reply.header("X-Robots-Tag",        "noindex, nofollow, noarchive, nosnippet");
+    reply.header("X-Permitted-Cross-Domain-Policies", "none");
+    reply.header("Referrer-Policy",     "no-referrer");
+    reply.header("Permissions-Policy",  "geolocation=(), microphone=(), camera=()");
+    return payload;
   });
 
   await app.register(cors, {
-    origin: true, // configure per-merchant in production
+    origin: config.app.env === "production" ? false : true,
+      // In production: set to your domain e.g. "https://primestack-gsn.onrender.com"
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: [
       "Content-Type",
@@ -98,7 +110,7 @@ export async function createApp(): Promise<FastifyInstance> {
     max: config.rateLimit.max,
     timeWindow: `${config.rateLimit.window} seconds`,
     allowList: (request) =>
-      request.url.startsWith("/health") || request.url.startsWith("/docs"),
+      request.url.startsWith("/health"),
   });
 
   await app.register(jwt, {
@@ -136,6 +148,7 @@ export async function createApp(): Promise<FastifyInstance> {
   });
 
   // ── Custom Plugins ──────────────────────────────
+  await app.register(securityShieldPlugin);
   await app.register(fp(i18nPlugin));
   await app.register(fp(errorHandlerPlugin));
   await app.register(fp(ipWhitelistPlugin));
