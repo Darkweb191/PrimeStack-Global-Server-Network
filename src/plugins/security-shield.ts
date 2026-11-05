@@ -221,19 +221,7 @@ export const securityShieldPlugin = fp(async (app: FastifyInstance) => {
 
   // ?? Layer 6: API Docs Protection ????????????????????????????????
   // In production, /docs requires admin JWT authentication
-  app.addHook("onRequest", async (request: FastifyRequest, _reply: FastifyReply) => {
-    if (request.url.startsWith("/docs") && config.app.env === "production") {
-      try {
-        await request.jwtVerify();
-        const user = request.user as { role?: string } | undefined;
-        if (!user?.role || !["SUPER_ADMIN", "ADMIN"].includes(user.role)) {
-          throw new ForbiddenError("Admin access required for API documentation");
-        }
-      } catch {
-        throw new ForbiddenError("Authentication required for API documentation");
-      }
-    }
-  });
+
 
   // ?? Layer 7: Strip server-identifying headers ???????????????????
   app.addHook("onSend", async (_request: FastifyRequest, reply: FastifyReply, payload) => {

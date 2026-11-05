@@ -8,6 +8,7 @@ import swaggerUi from "@fastify/swagger-ui";
 import fp from "fastify-plugin";
 
 import { config } from "./config/index.js";
+import { ForbiddenError } from "./core/errors.js";
 import { logger } from "./core/logger.js";
 import { enhanceAdminHtml } from "./shared/admin-ui.js";
 
@@ -146,6 +147,24 @@ export async function createApp(): Promise<FastifyInstance> {
     routePrefix: "/docs",
     uiConfig: { docExpansion: "none", deepLinking: true },
   });
+
+  // ?? API Docs Protection ??????????????????????????????????
+  // In production, /docs requires admin JWT authentication
+  if (config.app.env === "production") {
+    app.addHook("onRequest", async (request, reply) => {
+      if (request.url.startsWith("/docs")) {
+        try {
+          await request.jwtVerify();
+          const user = request.user as { role?: string } | undefined;
+          if (!user?.role || !["SUPER_ADMIN", "ADMIN"].includes(user.role)) {
+            throw new ForbiddenError("Admin access required for API documentation");
+          }
+        } catch {
+          reply.code(403).send({ success: false, error: { code: "FORBIDDEN", message: "Authentication required for API documentation" }});
+        }
+      }
+    });
+  }
 
   // ── Custom Plugins ──────────────────────────────
   await app.register(securityShieldPlugin);
