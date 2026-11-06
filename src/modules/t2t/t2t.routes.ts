@@ -9,10 +9,20 @@ function generateRef(prefix: string): string {
   return prefix + "-" + Date.now().toString(36).toUpperCase() + randomUUID().slice(0, 6).toUpperCase();
 }
 
+
+async function ensureTable(): Promise<void> {
+  try {
+    await prisma.$executeRaw`CREATE TABLE IF NOT EXISTS "T2tWhitelist" (id TEXT NOT NULL PRIMARY KEY, ip TEXT NOT NULL UNIQUE, description TEXT, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW())`;
+  } catch (e) {
+    // Table might already exist ? ignore
+  }
+}
+
 export function registerT2tRoutes(app: FastifyInstance): void {
 
   // WHITELIST: Add/remove IP
   app.post("/t2t/whitelist", async (request: FastifyRequest, reply: FastifyReply) => {
+    await ensureTable();
     const body = request.body as { ip?: string; action?: string };
     if (!body?.ip) throw new ValidationError("ip is required");
     const ip = body.ip;
@@ -26,6 +36,7 @@ export function registerT2tRoutes(app: FastifyInstance): void {
 
   // WHITELIST: List IPs
   app.get("/t2t/whitelist", async (_request: FastifyRequest, reply: FastifyReply) => {
+    await ensureTable();
     const rows = await prisma.$queryRaw<{ip: string}[]>`SELECT ip FROM "T2tWhitelist"`;
     const ips = rows.map(r => r.ip);
     return sendSuccess(reply, { whitelistedIps: ips, count: ips.length });
@@ -33,6 +44,7 @@ export function registerT2tRoutes(app: FastifyInstance): void {
 
   // PING: Verify sender connectivity + whitelist check
   app.post("/t2t/ping", async (request: FastifyRequest, reply: FastifyReply) => {
+    await ensureTable();
     const body = request.body as { terminalId?: string };
     const callerIp = request.ip;
     const wlRows = await prisma.$queryRaw<{count: bigint}[]>`SELECT COUNT(*) as count FROM "T2tWhitelist" WHERE ip = ${callerIp}`;
@@ -57,6 +69,7 @@ export function registerT2tRoutes(app: FastifyInstance): void {
 
   // TRANSFER: Execute T2T transfer
   app.post("/t2t/transfer", async (request: FastifyRequest, reply: FastifyReply) => {
+    await ensureTable();
     const body = request.body as {
       amount: string;
       currency: string;
