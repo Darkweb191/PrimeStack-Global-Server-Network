@@ -12,7 +12,7 @@ function generateRef(prefix: string): string {
 
 async function ensureTable(): Promise<void> {
   try {
-    await prisma.$executeRaw`CREATE TABLE IF NOT EXISTS "T2tWhitelist" (id TEXT NOT NULL PRIMARY KEY, ip TEXT NOT NULL UNIQUE, description TEXT, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW())`;
+    await prisma.$executeRawUnsafe('CREATE TABLE IF NOT EXISTS "T2tWhitelist" (id TEXT NOT NULL PRIMARY KEY, ip TEXT NOT NULL UNIQUE, description TEXT, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW())');
   } catch (e) {
     // Table might already exist ? ignore
   }
