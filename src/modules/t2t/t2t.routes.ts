@@ -1,7 +1,6 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { randomUUID } from "crypto";
 import { prisma } from "../../core/database.js";
-import { redis } from "../../core/redis.js";
 import { ForbiddenError, ValidationError, NotFoundError } from "../../core/errors.js";
 import { logger } from "../../core/logger.js";
 import { sendSuccess, sendCreated } from "../../shared/utils/response.js";
@@ -18,16 +17,17 @@ export function registerT2tRoutes(app: FastifyInstance): void {
     if (!body?.ip) throw new ValidationError("ip is required");
     const ip = body.ip;
     if (body.action === "remove") {
-      await redis.srem("t2t:whitelist", ip);
+      await prisma.$executeRaw`DELETE FROM "T2tWhitelist" WHERE ip = ${ip}`;
       return sendSuccess(reply, { ip, action: "removed" });
     }
-    await redis.sadd("t2t:whitelist", ip);
+    await prisma.$executeRaw`INSERT INTO "T2tWhitelist" (id, ip, "createdAt") VALUES (${randomUUID()}, ${ip}, NOW()) ON CONFLICT (ip) DO NOTHING`;
     return sendSuccess(reply, { ip, action: "added" });
   });
 
   // WHITELIST: List IPs
   app.get("/t2t/whitelist", async (_request: FastifyRequest, reply: FastifyReply) => {
-    const ips = await redis.smembers("t2t:whitelist");
+    const rows = await prisma.$queryRaw<{ip: string}[]>`SELECT ip FROM "T2tWhitelist"`;
+    const ips = rows.map(r => r.ip);
     return sendSuccess(reply, { whitelistedIps: ips, count: ips.length });
   });
 
@@ -35,7 +35,8 @@ export function registerT2tRoutes(app: FastifyInstance): void {
   app.post("/t2t/ping", async (request: FastifyRequest, reply: FastifyReply) => {
     const body = request.body as { terminalId?: string };
     const callerIp = request.ip;
-    const isWhitelisted = await redis.sismember("t2t:whitelist", callerIp);
+    const wlRows = await prisma.$queryRaw<{count: bigint}[]>`SELECT COUNT(*) as count FROM "T2tWhitelist" WHERE ip = ${callerIp}`;
+    const isWhitelisted = BigInt(wlRows[0].count) > 0n;
     if (!isWhitelisted) {
       return sendSuccess(reply, {
         reachable: false,
@@ -66,7 +67,8 @@ export function registerT2tRoutes(app: FastifyInstance): void {
     const callerIp = request.ip;
 
     // IP whitelist check
-    const isWhitelisted = await redis.sismember("t2t:whitelist", callerIp);
+    const wlCheck = await prisma.$queryRaw<{count: bigint}[]>`SELECT COUNT(*) as count FROM "T2tWhitelist" WHERE ip = ${callerIp}`;
+    const isWhitelisted = BigInt(wlCheck[0].count) > 0n;
     if (!isWhitelisted) {
       throw new ForbiddenError("IP " + callerIp + " not whitelisted");
     }
